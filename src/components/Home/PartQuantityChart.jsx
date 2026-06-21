@@ -1,6 +1,22 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
-const COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)', 'var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)']
+const QUANTITY_COLORS = {
+  low: '#e53e3e',
+  medium: '#d69e2e',
+  high: '#38a169'
+}
+
+function getQuantityLevel(qty) {
+  if (qty <= 5) return 'low'
+  if (qty <= 20) return 'medium'
+  return 'high'
+}
+
+function getQuantityLabel(level) {
+  if (level === 'low') return 'Low (≤5)'
+  if (level === 'medium') return 'Medium (6–20)'
+  return 'High (21+)'
+}
 
 export default function PartQuantityChart({ products }) {
   if (!products || products.length === 0) {
@@ -11,18 +27,12 @@ export default function PartQuantityChart({ products }) {
     )
   }
 
-  const categories = [...new Set(products.map(p => p.category).filter(Boolean))]
-  const categoryColorMap = {}
-  categories.forEach((cat, i) => {
-    categoryColorMap[cat] = COLORS[i % COLORS.length]
-  })
-
   const data = products
     .filter(p => p.part_number)
     .map(p => ({
       name: p.part_number,
       quantity: p.quantity,
-      category: p.category
+      level: getQuantityLevel(p.quantity)
     }))
     .sort((a, b) => b.quantity - a.quantity)
 
@@ -50,11 +60,11 @@ export default function PartQuantityChart({ products }) {
             boxShadow: 'var(--shadow-md)'
           }}
           labelStyle={{ color: 'var(--text-primary)', fontWeight: 600, marginBottom: 4 }}
-          formatter={(value, name, props) => [value, `${props.payload.category} - Qty`]}
+          formatter={(value, name, props) => [value, `${getQuantityLabel(props.payload.level)} - Qty`]}
         />
         <Bar dataKey="quantity" radius={[6, 6, 0, 0]} maxBarSize={48}>
           {data.map((entry, index) => (
-            <Cell key={index} fill={categoryColorMap[entry.category] || 'var(--chart-5)'} />
+            <Cell key={index} fill={QUANTITY_COLORS[entry.level]} />
           ))}
         </Bar>
       </BarChart>
