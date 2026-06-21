@@ -6,10 +6,15 @@ const ThemeContext = createContext()
 export function ThemeProvider({ children }) {
   const [currentTheme, setCurrentTheme] = useState(() => {
     let stored = localStorage.getItem('nhq-theme')
-    if (stored === 'cohesity' || stored === 'nhqbd') {
-      const migrated = stored === 'cohesity' ? 'nhqbd' : 'cohesity'
-      localStorage.setItem('nhq-theme', migrated)
-      return migrated
+    if (!localStorage.getItem('nhq-theme-migrated')) {
+      if (stored === 'cohesity') {
+        localStorage.setItem('nhq-theme', 'nhqbd')
+        stored = 'nhqbd'
+      } else if (stored === 'nhqbd') {
+        localStorage.setItem('nhq-theme', 'cohesity')
+        stored = 'cohesity'
+      }
+      localStorage.setItem('nhq-theme-migrated', '1')
     }
     return stored || 'nhqbd'
   })
