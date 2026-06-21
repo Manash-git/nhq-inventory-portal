@@ -18,7 +18,6 @@ export default function PartQuantityChart({ products }) {
       quantity: p.quantity
     }))
     .sort((a, b) => b.quantity - a.quantity)
-    .slice(0, 8)
 
   return (
     <ResponsiveContainer width="100%" height={160}>
