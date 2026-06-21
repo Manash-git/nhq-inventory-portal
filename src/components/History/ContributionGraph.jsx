@@ -14,54 +14,74 @@ const LEVEL_COLORS = [
 export default function ContributionGraph({ logs }) {
   const [tooltip, setTooltip] = useState(null)
 
-  const { weeks } = useMemo(() => {
-    const today = new Date()
-    const oneYearAgo = new Date(today)
-    oneYearAgo.setDate(oneYearAgo.getDate() - 364)
-    oneYearAgo.setHours(0, 0, 0, 0)
+  const today = new Date()
+  const oneYearAgo = new Date(today)
+  oneYearAgo.setDate(oneYearAgo.getDate() - 364)
+  oneYearAgo.setHours(0, 0, 0, 0)
 
-    const dayCounts = {}
-    for (let d = new Date(oneYearAgo); d <= today; d.setDate(d.getDate() + 1)) {
-      const key = d.toISOString().split('T')[0]
-      dayCounts[key] = 0
-    }
+  const dayCounts = {}
+  for (let d = new Date(oneYearAgo); d <= today; d.setDate(d.getDate() + 1)) {
+    const key = d.toISOString().split('T')[0]
+    dayCounts[key] = 0
+  }
 
-    ;(logs || []).forEach(log => {
-      if (!log.created_at) return
+  ;(logs || []).forEach(log => {
+    if (!log.created_at) return
+    try {
       const key = new Date(log.created_at).toISOString().split('T')[0]
       if (dayCounts[key] !== undefined) {
         dayCounts[key]++
       }
+    } catch (e) {
+      console.error('Bad date:', log.created_at, e)
+    }
+  })
+
+  const weeks = []
+  let currentWeek = []
+  const startDay = oneYearAgo.getDay()
+  for (let i = 0; i < startDay; i++) {
+    currentWeek.push(null)
+  }
+  for (let d = new Date(oneYearAgo); d <= today; d.setDate(d.getDate() + 1)) {
+    const key = d.toISOString().split('T')[0]
+    currentWeek.push({
+      date: key,
+      count: dayCounts[key] || 0,
+      day: d.getDate(),
+      month: d.getMonth()
     })
-
-    const weeks = []
-    let currentWeek = []
-    const startDay = oneYearAgo.getDay()
-
-    for (let i = 0; i < startDay; i++) {
-      currentWeek.push(null)
-    }
-
-    for (let d = new Date(oneYearAgo); d <= today; d.setDate(d.getDate() + 1)) {
-      const key = d.toISOString().split('T')[0]
-      currentWeek.push({
-        date: key,
-        count: dayCounts[key] || 0,
-        day: d.getDate(),
-        month: d.getMonth()
-      })
-      if (currentWeek.length === 7) {
-        weeks.push(currentWeek)
-        currentWeek = []
-      }
-    }
-    if (currentWeek.length > 0) {
-      while (currentWeek.length < 7) currentWeek.push(null)
+    if (currentWeek.length === 7) {
       weeks.push(currentWeek)
+      currentWeek = []
     }
+  }
+  if (currentWeek.length > 0) {
+    while (currentWeek.length < 7) currentWeek.push(null)
+    weeks.push(currentWeek)
+  }
 
-    return { weeks }
-  }, [logs])
+  const logsByDate = {}
+  ;(logs || []).forEach(log => {
+    if (!log.created_at) return
+    try {
+      const key = new Date(log.created_at).toISOString().split('T')[0]
+      if (!logsByDate[key]) logsByDate[key] = []
+      logsByDate[key].push(log)
+    } catch (e) {}
+  })
+
+  const monthPositions = []
+  weeks.forEach((week, wi) => {
+    week.forEach((day) => {
+      if (day && day.date) {
+        const d = new Date(day.date)
+        if (d.getDate() === 1) {
+          monthPositions.push({ idx: wi, name: MONTH_NAMES[d.getMonth()] })
+        }
+      }
+    })
+  })
 
   const getLevel = (count) => {
     if (count === 0) return 0
@@ -71,32 +91,7 @@ export default function ContributionGraph({ logs }) {
     return 4
   }
 
-  const today = new Date()
-  const logsByDate = useMemo(() => {
-    const map = {}
-    ;(logs || []).forEach(log => {
-      if (!log.created_at) return
-      const key = new Date(log.created_at).toISOString().split('T')[0]
-      if (!map[key]) map[key] = []
-      map[key].push(log)
-    })
-    return map
-  }, [logs])
-
-  const monthPositions = useMemo(() => {
-    const positions = []
-    weeks.forEach((week, wi) => {
-      week.forEach((day) => {
-        if (day && day.date) {
-          const d = new Date(day.date)
-          if (d.getDate() === 1) {
-            positions.push({ idx: wi, name: MONTH_NAMES[d.getMonth()] })
-          }
-        }
-      })
-    })
-    return positions
-  }, [weeks])
+  const hasActivity = logs && logs.length > 0
 
   return (
     <div className="card contribution-card">
@@ -123,32 +118,37 @@ export default function ContributionGraph({ logs }) {
             ))}
           </div>
           <div className="weeks-container">
-            {weeks.map((week, wi) => (
-              <div key={wi} className="week-column">
-                {week.map((day, di) => {
-                  if (!day) return <div key={di} className="contribution-cell empty" />
-                  const level = getLevel(day.count)
-                  return (
-                    <div
-                      key={di}
-                      className="contribution-cell"
-                      style={{ background: LEVEL_COLORS[level] }}
-                      onMouseEnter={(e) => {
-                        const logs = logsByDate[day.date] || []
-                        setTooltip({
-                          x: e.target.getBoundingClientRect().left,
-                          y: e.target.getBoundingClientRect().top - 10,
-                          date: day.date,
-                          count: day.count,
-                          logs
-                        })
-                      }}
-                      onMouseLeave={() => setTooltip(null)}
-                    />
-                  )
-                })}
-              </div>
-            ))}
+            {weeks.length === 0 ? (
+              <div style={{ padding: 20, color: 'var(--text-muted)', fontSize: '0.8125rem' }}>No data</div>
+            ) : (
+              weeks.map((week, wi) => (
+                <div key={wi} className="week-column">
+                  {week.map((day, di) => {
+                    if (!day) return <div key={di} className="contribution-cell empty" />
+                    const level = getLevel(day.count)
+                    const bgColor = LEVEL_COLORS[level]
+                    return (
+                      <div
+                        key={di}
+                        className="contribution-cell"
+                        style={{ background: bgColor }}
+                        onMouseEnter={(e) => {
+                          const logs = logsByDate[day.date] || []
+                          setTooltip({
+                            x: e.target.getBoundingClientRect().left,
+                            y: e.target.getBoundingClientRect().top - 10,
+                            date: day.date,
+                            count: day.count,
+                            logs
+                          })
+                        }}
+                        onMouseLeave={() => setTooltip(null)}
+                      />
+                    )
+                  })}
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -159,6 +159,12 @@ export default function ContributionGraph({ logs }) {
           ))}
           <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>More</span>
         </div>
+
+        {!hasActivity && (
+          <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
+            No activity logs found. Perform actions on products to see them here.
+          </div>
+        )}
       </div>
 
       {tooltip && (
