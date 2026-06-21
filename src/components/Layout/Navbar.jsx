@@ -8,7 +8,7 @@ import './Navbar.css'
 
 export default function Navbar() {
   const { user, logout, isRoot, resetUserPassword } = useAuth()
-  const { currentTheme, isDark, toggleDark, switchTheme, themeNames } = useTheme()
+  const { currentTheme, isDark, toggleDark, switchTheme, themes: themeKeys } = useTheme()
   const { addToast } = useNotification()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showThemeMenu, setShowThemeMenu] = useState(false)
@@ -90,22 +90,28 @@ export default function Navbar() {
                 </svg>
               </button>
               {showThemeMenu && (
-                <div className="dropdown-menu">
-                  {Object.entries(themeNames).map(([key, name]) => (
-                    <button
-                      key={key}
-                      className={`dropdown-item ${currentTheme === key ? 'active' : ''}`}
-                      onClick={() => { switchTheme(key); setShowThemeMenu(false) }}
-                      style={currentTheme === key ? { color: 'var(--accent-primary)', fontWeight: 600 } : {}}
-                    >
-                      {currentTheme === key && (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                          <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                      )}
-                      <span style={{ marginLeft: currentTheme === key ? 0 : 24 }}>{name}</span>
-                    </button>
-                  ))}
+                <div className="dropdown-menu" data-current={currentTheme}>
+                  {[
+                    { key: 'cohesity', label: 'Cohesity' },
+                    { key: 'nhqbd', label: 'NHQBD' }
+                  ].map(({ key, label }) => {
+                    const isActive = currentTheme === key
+                    return (
+                      <button
+                        key={key}
+                        className={`dropdown-item ${isActive ? 'active' : ''}`}
+                        onClick={() => { switchTheme(key); setShowThemeMenu(false) }}
+                        style={isActive ? { color: 'var(--accent-primary)', fontWeight: 600 } : {}}
+                      >
+                        {isActive && (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                            <polyline points="20 6 9 17 4 12"/>
+                          </svg>
+                        )}
+                        <span style={{ marginLeft: isActive ? 0 : 24 }}>{label}</span>
+                      </button>
+                    )
+                  })}
                 </div>
               )}
             </div>
