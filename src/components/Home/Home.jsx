@@ -351,7 +351,6 @@ export default function Home() {
                 <thead>
                   <tr>
                     <th style={{ width: 40 }}>#</th>
-                    <th style={{ width: 200 }}>Image URL</th>
                     <th onClick={() => handleSort('product_description')} style={{ cursor: 'pointer' }}>
                       Product Description <SortIcon col="product_description" />
                     </th>
@@ -367,33 +366,13 @@ export default function Home() {
                     <th onClick={() => handleSort('created_at')} style={{ cursor: 'pointer' }}>
                       Date Added <SortIcon col="created_at" />
                     </th>
-                    {canEdit && <th style={{ width: 140 }}>Actions</th>}
+                    <th style={{ width: 180 }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map((product, idx) => (
                     <tr key={product.id}>
                       <td className="text-muted">{idx + 1}</td>
-                      <td>
-                        {product.image_url ? (
-                          <div className="image-url-cell">
-                            <a
-                              href={product.image_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="image-url-link"
-                              title={product.image_url}
-                            >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
-                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-                              </svg>
-                              <span className="image-url-text">View Image</span>
-                            </a>
-                          </div>
-                        ) : (
-                          <span className="text-muted" style={{ fontSize: '0.8125rem' }}>No Image</span>
-                        )}
-                      </td>
                       <td style={{ fontWeight: 500 }}>{product.product_description}</td>
                       <td><code style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>{product.part_number}</code></td>
                       <td><span className="badge badge-primary">{product.category}</span></td>
@@ -415,30 +394,46 @@ export default function Home() {
                         </div>
                       </td>
                       <td style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>{formatDate(product.created_at)}</td>
-                      {canEdit && (
-                        <td>
-                          <div className="actions-cell">
+                      <td>
+                        <div className="actions-cell">
+                          {product.image_url && (
+                            <a
+                              href={product.image_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn-icon"
+                              title="View image"
+                              style={{ color: 'var(--accent-primary)' }}
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                              </svg>
+                            </a>
+                          )}
+                          {canEdit && (
                             <button className="btn-icon" onClick={() => openEdit(product)} title="Edit">
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                               </svg>
                             </button>
-                            {product.quantity <= 1 && (
-                              <button className="btn-icon" onClick={() => openArchive(product)} title="Archive" style={{ color: 'var(--warning)' }}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>
-                                </svg>
-                              </button>
-                            )}
+                          )}
+                          {canEdit && product.quantity <= 1 && (
+                            <button className="btn-icon" onClick={() => openArchive(product)} title="Archive" style={{ color: 'var(--warning)' }}>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>
+                              </svg>
+                            </button>
+                          )}
+                          {canEdit && (
                             <button className="btn-icon" onClick={() => openDelete(product)} title="Delete" style={{ color: 'var(--danger)' }}>
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                               </svg>
                             </button>
-                          </div>
-                        </td>
-                      )}
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

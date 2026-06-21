@@ -94,36 +94,6 @@
   background: rgba(0, 82, 255, 0.03);
 }
 
-.image-url-cell {
-  display: flex;
-  align-items: center;
-}
-
-.image-url-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 0.8125rem;
-  color: var(--accent-primary);
-  text-decoration: none;
-  transition: all 0.2s ease;
-  border: 1px solid var(--border-light);
-  max-width: 160px;
-}
-
-.image-url-link:hover {
-  background: var(--bg-hover);
-  border-color: var(--accent-primary);
-}
-
-.image-url-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .text-muted {
   color: var(--text-muted);
 }
