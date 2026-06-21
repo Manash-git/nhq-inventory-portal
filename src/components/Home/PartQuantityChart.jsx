@@ -1,21 +1,9 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
-const QUANTITY_COLORS = {
-  low: '#e53e3e',
-  medium: '#d69e2e',
-  high: '#38a169'
-}
-
-function getQuantityLevel(qty) {
-  if (qty <= 5) return 'low'
-  if (qty <= 20) return 'medium'
-  return 'high'
-}
-
-function getQuantityLabel(level) {
-  if (level === 'low') return 'Low (≤5)'
-  if (level === 'medium') return 'Medium (6–20)'
-  return 'High (21+)'
+const CATEGORY_COLORS = {
+  'NetBackup Appliance': '#3b82f6',
+  'Flex Appliance': '#14b8a6',
+  'Other / Shared': '#f59e0b'
 }
 
 export default function PartQuantityChart({ products }) {
@@ -32,7 +20,7 @@ export default function PartQuantityChart({ products }) {
     .map(p => ({
       name: p.part_number,
       quantity: p.quantity,
-      level: getQuantityLevel(p.quantity)
+      category: p.category
     }))
     .sort((a, b) => b.quantity - a.quantity)
 
@@ -60,11 +48,11 @@ export default function PartQuantityChart({ products }) {
             boxShadow: 'var(--shadow-md)'
           }}
           labelStyle={{ color: 'var(--text-primary)', fontWeight: 600, marginBottom: 4 }}
-          formatter={(value, name, props) => [value, `${getQuantityLabel(props.payload.level)} - Qty`]}
+          formatter={(value, name, props) => [value, `${props.payload.category} - Qty`]}
         />
         <Bar dataKey="quantity" radius={[6, 6, 0, 0]} maxBarSize={48}>
           {data.map((entry, index) => (
-            <Cell key={index} fill={QUANTITY_COLORS[entry.level]} />
+            <Cell key={index} fill={CATEGORY_COLORS[entry.category] || 'var(--chart-5)'} />
           ))}
         </Bar>
       </BarChart>
