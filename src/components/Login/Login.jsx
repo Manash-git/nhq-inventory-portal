@@ -225,15 +225,6 @@ export default function Login() {
                 Forgot password?
               </button>
             </div>
-
-            <div className="login-users-hint">
-              <p>Demo Accounts:</p>
-              <div className="login-users-list">
-                <span><strong>manash@nhqbd.com</strong> (Root) / Man&Mond71</span>
-                <span><strong>admin</strong> (Admin) / Man@321%</span>
-                <span><strong>nhq</strong> (Guest) / Nhq@321%</span>
-              </div>
-            </div>
           </form>
         ) : (
           <div className="login-form">

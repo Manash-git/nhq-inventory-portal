@@ -37,9 +37,6 @@ export default function Home() {
   })
   const [sortBy, setSortBy] = useState('serial')
   const [sortDir, setSortDir] = useState('asc')
-  const [showImportModal, setShowImportModal] = useState(false)
-  const [importFile, setImportFile] = useState(null)
-  const [importing, setImporting] = useState(false)
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -321,14 +318,6 @@ export default function Home() {
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
               </svg>
               Export
-            </button>
-          )}
-          {canEdit && (
-            <button className="btn btn-outline" onClick={() => setShowImportModal(true)}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-              Import
             </button>
           )}
           {canEdit && (
@@ -623,67 +612,7 @@ export default function Home() {
         </div>
       </Modal>
 
-      <Modal isOpen={showImportModal} onClose={() => { setShowImportModal(false); setImportFile(null) }} title="Import from Excel">
-        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: 16 }}>
-          Upload an Excel file (.xlsx) with columns: Product Description, Part Number (PN), Category, Quantity.
-        </p>
-        <div className="file-upload-wrapper" style={{ marginBottom: 16 }}>
-          <input type="file" accept=".xlsx,.xls" onChange={e => setImportFile(e.target.files?.[0])} id="import-excel" hidden />
-          <label htmlFor="import-excel" className="file-upload-label">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-            </svg>
-            {importFile ? importFile.name : 'Choose Excel file'}
-          </label>
-        </div>
-        {importFile && (
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
-            <button className="btn btn-secondary" onClick={() => { setShowImportModal(false); setImportFile(null) }}>Cancel</button>
-            <button className="btn btn-primary" disabled={importing} onClick={async () => {
-              if (!importFile) return
-              setImporting(true)
-              try {
-                const data = await importFile.arrayBuffer()
-                const wb = XLSX.read(data, { type: 'array' })
-                const ws = wb.Sheets[wb.SheetNames[0]]
-                const rows = XLSX.utils.sheet_to_json(ws)
-                let imported = 0
-                for (const row of rows) {
-                  const desc = row['Product Description'] || row['product_description']
-                  const pn = row['Part Number (PN)'] || row['part_number']
-                  const cat = row['Category'] || row['category'] || 'Other'
-                  const qty = parseInt(row['Quantity'] || row['quantity']) || 0
-                  if (!desc || !pn) continue
-                  const { data: ins, error } = await supabase.from('products').insert([{
-                    product_description: String(desc).trim(),
-                    part_number: String(pn).trim(),
-                    category: String(cat).trim(),
-                    quantity: qty
-                  }]).select()
-                  if (!error && ins?.length) {
-                    await supabase.from('activity_logs').insert([{
-                      product_id: ins[0].id, action: 'add',
-                      description: `Imported from Excel: "${desc}"`,
-                      user_id: user?.id, user_name: user?.name
-                    }])
-                    imported++
-                  }
-                }
-                addToast(`Imported ${imported} product(s) successfully!`, 'success')
-                setShowImportModal(false)
-                setImportFile(null)
-                fetchProducts()
-              } catch (err) {
-                addToast('Import failed: ' + err.message, 'error')
-              } finally {
-                setImporting(false)
-              }
-            }}>
-              {importing ? 'Importing...' : 'Import'}
-            </button>
-          </div>
-        )}
-      </Modal>
+
     </div>
   )
 }
