@@ -11,7 +11,15 @@ import History from './components/History/History'
 import About from './components/About/About'
 
 function AppContent() {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'var(--text-muted)' }}>
+        Loading...
+      </div>
+    )
+  }
 
   if (!user) {
     return (
