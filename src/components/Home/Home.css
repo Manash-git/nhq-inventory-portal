@@ -1,0 +1,149 @@
+.home-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.home-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 24px;
+}
+
+.home-table-card {
+  overflow: hidden;
+}
+
+.home-chart-card {
+  padding: 20px;
+  height: fit-content;
+  position: sticky;
+  top: 88px;
+}
+
+.qty-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.qty-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.qty-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.qty-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.qty-value {
+  min-width: 28px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.qty-low {
+  color: var(--danger);
+}
+
+.product-thumb:hover {
+  opacity: 0.85;
+}
+
+.file-upload-wrapper {
+  margin-top: 4px;
+}
+
+.file-upload-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--bg-input);
+  border: 1.5px dashed var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.file-upload-label:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  background: rgba(0, 82, 255, 0.03);
+}
+
+.image-url-cell {
+  display: flex;
+  align-items: center;
+}
+
+.image-url-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: all 0.2s ease;
+  border: 1px solid var(--border-light);
+  max-width: 160px;
+}
+
+.image-url-link:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent-primary);
+}
+
+.image-url-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+@media (max-width: 1024px) {
+  .home-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .home-chart-card {
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .home-actions {
+    width: 100%;
+  }
+
+  .home-actions input {
+    width: 100% !important;
+  }
+}

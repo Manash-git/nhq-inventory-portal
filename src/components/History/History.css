@@ -1,0 +1,269 @@
+.activity-list {
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-light);
+  transition: background 0.15s ease;
+}
+
+.activity-item:hover {
+  background: var(--bg-hover);
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+.activity-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.activity-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-desc {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+.activity-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.75rem;
+}
+
+.activity-user {
+  color: var(--text-muted);
+}
+
+.activity-action-badge {
+  padding: 1px 8px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.activity-time {
+  color: var(--text-muted);
+}
+
+.contribution-card {
+  padding: 24px;
+}
+
+.contribution-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.contribution-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.contribution-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.contribution-graph {
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.contribution-months {
+  position: relative;
+  height: 16px;
+}
+
+.months-row {
+  position: relative;
+  height: 16px;
+}
+
+.contribution-weeks {
+  display: flex;
+  gap: 3px;
+}
+
+.day-labels {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-right: 4px;
+  padding-top: 0;
+}
+
+.day-label {
+  height: 12px;
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  line-height: 12px;
+}
+
+.weeks-container {
+  display: flex;
+  gap: 3px;
+}
+
+.week-column {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.contribution-cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  transition: all 0.1s ease;
+}
+
+.contribution-cell:not(.empty):hover {
+  transform: scale(1.3);
+  outline: 2px solid var(--text-primary);
+  z-index: 2;
+  position: relative;
+}
+
+.contribution-cell.level-0 {
+  background: var(--contribution-0);
+}
+
+.contribution-cell.level-1 {
+  background: var(--contribution-1);
+}
+
+.contribution-cell.level-2 {
+  background: var(--contribution-2);
+}
+
+.contribution-cell.level-3 {
+  background: var(--contribution-3);
+}
+
+.contribution-cell.level-4 {
+  background: var(--contribution-4);
+}
+
+.contribution-cell.empty {
+  background: transparent;
+}
+
+.contribution-legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 12px;
+  justify-content: flex-end;
+}
+
+.contribution-tooltip {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  box-shadow: var(--shadow-lg);
+  padding: 12px;
+  min-width: 220px;
+  max-width: 300px;
+  animation: fadeIn 0.15s ease;
+  z-index: 1000;
+}
+
+.contribution-tooltip-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+}
+
+.tooltip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.tooltip-header strong {
+  color: var(--text-primary);
+}
+
+.tooltip-logs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tooltip-log-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  line-height: 1.3;
+}
+
+.tooltip-action-badge {
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.tooltip-action-badge.action-add {
+  background: rgba(56, 161, 105, 0.15);
+  color: var(--success);
+}
+
+.tooltip-action-badge.action-delete {
+  background: rgba(229, 62, 62, 0.15);
+  color: var(--danger);
+}
+
+.tooltip-action-badge.action-edit {
+  background: rgba(0, 82, 255, 0.1);
+  color: var(--accent-primary);
+}
+
+.tooltip-action-badge.action-archived {
+  background: rgba(214, 158, 46, 0.15);
+  color: var(--warning);
+}
+
+.tooltip-log-desc {
+  word-break: break-word;
+}
+
+.tooltip-more {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+  text-align: center;
+}
