@@ -148,26 +148,6 @@
   position: relative;
 }
 
-.contribution-cell.level-0 {
-  background: transparent;
-}
-
-.contribution-cell.level-1 {
-  background: var(--contribution-1);
-}
-
-.contribution-cell.level-2 {
-  background: var(--contribution-2);
-}
-
-.contribution-cell.level-3 {
-  background: var(--contribution-3);
-}
-
-.contribution-cell.level-4 {
-  background: var(--contribution-4);
-}
-
 .contribution-cell.empty {
   background: transparent;
 }

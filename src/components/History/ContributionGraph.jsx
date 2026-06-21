@@ -3,11 +3,18 @@ import { formatDate } from '../../utils/helpers'
 
 const DAY_NAMES = ['', 'Mon', '', 'Wed', '', 'Fri', '']
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const LEVEL_COLORS = [
+  'transparent',
+  'rgba(56,161,105,0.35)',
+  'rgba(56,161,105,0.55)',
+  'rgba(56,161,105,0.75)',
+  'rgba(56,161,105,1)'
+]
 
 export default function ContributionGraph({ logs }) {
   const [tooltip, setTooltip] = useState(null)
 
-  const { weeks, totalDays } = useMemo(() => {
+  const { weeks } = useMemo(() => {
     const today = new Date()
     const oneYearAgo = new Date(today)
     oneYearAgo.setDate(oneYearAgo.getDate() - 364)
@@ -53,7 +60,7 @@ export default function ContributionGraph({ logs }) {
       weeks.push(currentWeek)
     }
 
-    return { weeks, totalDays: Object.keys(dayCounts).length }
+    return { weeks }
   }, [logs])
 
   const getLevel = (count) => {
@@ -65,19 +72,6 @@ export default function ContributionGraph({ logs }) {
   }
 
   const today = new Date()
-  const currentMonth = today.getMonth()
-
-  const months = useMemo(() => {
-    const m = []
-    const startMonth = new Date(today)
-    startMonth.setDate(startMonth.getDate() - 364)
-    for (let i = 0; i < 12; i++) {
-      const idx = (startMonth.getMonth() + i) % 12
-      m.push(MONTH_NAMES[idx])
-    }
-    return m
-  }, [today])
-
   const logsByDate = useMemo(() => {
     const map = {}
     ;(logs || []).forEach(log => {
@@ -89,6 +83,21 @@ export default function ContributionGraph({ logs }) {
     return map
   }, [logs])
 
+  const monthPositions = useMemo(() => {
+    const positions = []
+    weeks.forEach((week, wi) => {
+      week.forEach((day) => {
+        if (day && day.date) {
+          const d = new Date(day.date)
+          if (d.getDate() === 1) {
+            positions.push({ idx: wi, name: MONTH_NAMES[d.getMonth()] })
+          }
+        }
+      })
+    })
+    return positions
+  }, [weeks])
+
   return (
     <div className="card contribution-card">
       <div className="contribution-header">
@@ -98,43 +107,12 @@ export default function ContributionGraph({ logs }) {
 
       <div className="contribution-graph">
         <div className="contribution-months">
-          {weeks.length > 0 && weeks[0].map((day, idx) => {
-            if (!day) return <span key={idx} />
-            if (idx < MONTH_NAMES.length) {
-              const showMonth = day.date && weeks.some((w, wi) => {
-                const d = wi === 0 ? null : null
-                return false
-              })
-            }
-            return null
-          })}
           <div className="months-row">
-            {(() => {
-              const months = []
-              const start = new Date(today)
-              start.setDate(start.getDate() - 364)
-              for (let i = 0; i < 12; i++) {
-                const m = new Date(start)
-                m.setMonth(m.getMonth() + i)
-                months.push(MONTH_NAMES[m.getMonth()])
-              }
-              const positions = []
-              weeks.forEach((week, wi) => {
-                week.forEach((day, di) => {
-                  if (day && day.date) {
-                    const d = new Date(day.date)
-                    if (d.getDate() === 1) {
-                      positions.push({ idx: wi, name: MONTH_NAMES[d.getMonth()] })
-                    }
-                  }
-                })
-              })
-              return positions.map((p, i) => (
-                <span key={i} style={{ position: 'absolute', left: p.idx * 14 + 30, top: -4, fontSize: '0.65rem', color: 'var(--text-muted)' }}>
-                  {p.name}
-                </span>
-              ))
-            })()}
+            {monthPositions.map((p, i) => (
+              <span key={i} style={{ position: 'absolute', left: p.idx * 14 + 30, top: -4, fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                {p.name}
+              </span>
+            ))}
           </div>
         </div>
 
@@ -153,7 +131,8 @@ export default function ContributionGraph({ logs }) {
                   return (
                     <div
                       key={di}
-                      className={`contribution-cell level-${level}`}
+                      className="contribution-cell"
+                      style={{ background: LEVEL_COLORS[level] }}
                       onMouseEnter={(e) => {
                         const logs = logsByDate[day.date] || []
                         setTooltip({
@@ -176,7 +155,7 @@ export default function ContributionGraph({ logs }) {
         <div className="contribution-legend">
           <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Less</span>
           {[0, 1, 2, 3, 4].map(l => (
-            <div key={l} className={`contribution-cell level-${l}`} style={{ width: 12, height: 12 }} />
+            <div key={l} style={{ width: 12, height: 12, borderRadius: 2, background: LEVEL_COLORS[l] }} />
           ))}
           <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>More</span>
         </div>
