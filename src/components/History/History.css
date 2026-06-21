@@ -149,7 +149,7 @@
 }
 
 .contribution-cell.level-0 {
-  background: var(--contribution-0);
+  background: transparent;
 }
 
 .contribution-cell.level-1 {
