@@ -7,19 +7,12 @@
 
 .home-grid {
   display: grid;
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: 1fr;
   gap: 24px;
 }
 
 .home-table-card {
   overflow: hidden;
-}
-
-.home-chart-card {
-  padding: 20px;
-  height: fit-content;
-  position: sticky;
-  top: 88px;
 }
 
 .qty-control {
@@ -94,18 +87,15 @@
   background: rgba(0, 82, 255, 0.03);
 }
 
-.text-muted {
-  color: var(--text-muted);
+.cell-single-line {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-@media (max-width: 1024px) {
-  .home-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .home-chart-card {
-    position: static;
-  }
+.text-muted {
+  color: var(--text-muted);
 }
 
 @media (max-width: 768px) {

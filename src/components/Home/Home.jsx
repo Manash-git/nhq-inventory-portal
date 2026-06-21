@@ -4,7 +4,6 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useNotification } from '../../contexts/NotificationContext'
 import { formatDate } from '../../utils/helpers'
 import Modal from '../Common/Modal'
-import QuantityChart from './QuantityChart'
 import * as XLSX from 'xlsx'
 import './Home.css'
 
@@ -373,8 +372,8 @@ export default function Home() {
                   {filtered.map((product, idx) => (
                     <tr key={product.id}>
                       <td className="text-muted">{idx + 1}</td>
-                      <td style={{ fontWeight: 500 }}>{product.product_description}</td>
-                      <td><code style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>{product.part_number}</code></td>
+                      <td className="cell-single-line" style={{ fontWeight: 500, maxWidth: 400 }}>{product.product_description}</td>
+                      <td className="cell-single-line" style={{ maxWidth: 200 }}><code style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>{product.part_number}</code></td>
                       <td><span className="badge badge-primary">{product.category}</span></td>
                       <td>
                         <div className="qty-control">
@@ -442,12 +441,6 @@ export default function Home() {
           )}
         </div>
 
-        <div className="card home-chart-card">
-          <h3 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: 16, color: 'var(--text-secondary)' }}>
-            Quantity Overview
-          </h3>
-          <QuantityChart products={products} />
-        </div>
       </div>
 
       <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Add New Product">
