@@ -23,7 +23,7 @@ export default function QuantityChart({ products }) {
     .slice(0, 8)
 
   return (
-    <ResponsiveContainer width="100%" height={280}>
+    <ResponsiveContainer width="100%" height={160}>
       <BarChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 4 }}>
         <XAxis
           dataKey="name"

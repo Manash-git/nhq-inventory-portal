@@ -59,7 +59,7 @@ export default function Navbar() {
               className="navbar-logo"
               onError={(e) => { e.target.src = ''; e.target.style.display = 'none' }}
             />
-            <span className="navbar-brand-text">Inventory Portal</span>
+            <span className="navbar-brand-text">NHQ Inventory Portal</span>
           </div>
 
           <div className={`navbar-links ${mobileOpen ? 'open' : ''}`}>

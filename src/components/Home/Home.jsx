@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useNotification } from '../../contexts/NotificationContext'
 import { formatDate } from '../../utils/helpers'
 import Modal from '../Common/Modal'
+import QuantityChart from './QuantityChart'
 import * as XLSX from 'xlsx'
 import './Home.css'
 
@@ -441,6 +442,14 @@ export default function Home() {
           )}
         </div>
 
+      </div>
+
+      <div className="card chart-compact">
+        <div className="chart-compact-header">
+          <h3>Quantity Overview</h3>
+          <span className="text-muted" style={{ fontSize: '0.75rem' }}>{products.reduce((s, p) => s + p.quantity, 0)} total units</span>
+        </div>
+        <QuantityChart products={products} />
       </div>
 
       <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Add New Product">

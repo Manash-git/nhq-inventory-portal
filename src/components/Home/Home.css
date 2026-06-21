@@ -87,6 +87,24 @@
   background: rgba(0, 82, 255, 0.03);
 }
 
+.chart-compact {
+  padding: 16px 20px;
+  margin-top: 24px;
+}
+
+.chart-compact-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.chart-compact-header h3 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
 .cell-single-line {
   max-width: 300px;
   overflow: hidden;
