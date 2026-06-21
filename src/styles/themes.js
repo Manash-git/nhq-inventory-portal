@@ -1,6 +1,6 @@
 export const themes = {
   cohesity: {
-    name: 'Cohesity',
+    name: 'NHQBD',
     light: {
       '--bg-primary': '#ffffff',
       '--bg-secondary': '#f4f6f9',
@@ -95,7 +95,7 @@ export const themes = {
     }
   },
   nhqbd: {
-    name: 'NHQBD',
+    name: 'Cohesity',
     light: {
       '--bg-primary': '#ffffff',
       '--bg-secondary': '#f0faf8',

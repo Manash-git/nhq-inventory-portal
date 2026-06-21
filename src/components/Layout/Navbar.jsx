@@ -101,7 +101,7 @@ export default function Navbar() {
                         <polyline points="20 6 9 17 4 12"/>
                       </svg>
                     )}
-                    <span style={{ marginLeft: currentTheme === 'cohesity' ? 0 : 24 }}>Cohesity</span>
+                    <span style={{ marginLeft: currentTheme === 'cohesity' ? 0 : 24 }}>NHQBD</span>
                   </button>
                   <button
                     className={`dropdown-item ${currentTheme === 'nhqbd' ? 'active' : ''}`}
@@ -113,7 +113,7 @@ export default function Navbar() {
                         <polyline points="20 6 9 17 4 12"/>
                       </svg>
                     )}
-                    <span style={{ marginLeft: currentTheme === 'nhqbd' ? 0 : 24 }}>NHQBD</span>
+                    <span style={{ marginLeft: currentTheme === 'nhqbd' ? 0 : 24 }}>Cohesity</span>
                   </button>
                 </div>
               )}
