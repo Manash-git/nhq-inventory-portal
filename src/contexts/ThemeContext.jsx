@@ -5,7 +5,13 @@ const ThemeContext = createContext()
 
 export function ThemeProvider({ children }) {
   const [currentTheme, setCurrentTheme] = useState(() => {
-    return localStorage.getItem('nhq-theme') || 'cohesity'
+    let stored = localStorage.getItem('nhq-theme')
+    if (stored === 'cohesity' || stored === 'nhqbd') {
+      const migrated = stored === 'cohesity' ? 'nhqbd' : 'cohesity'
+      localStorage.setItem('nhq-theme', migrated)
+      return migrated
+    }
+    return stored || 'nhqbd'
   })
 
   const [isDark, setIsDark] = useState(() => {

@@ -1,5 +1,5 @@
 export const themes = {
-  cohesity: {
+  nhqbd: {
     name: 'NHQBD',
     light: {
       '--bg-primary': '#ffffff',
@@ -94,7 +94,7 @@ export const themes = {
       '--nav-active': 'rgba(255,255,255,0.12)',
     }
   },
-  nhqbd: {
+  cohesity: {
     name: 'Cohesity',
     light: {
       '--bg-primary': '#ffffff',
