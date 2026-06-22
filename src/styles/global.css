@@ -145,6 +145,7 @@ img {
   min-height: 100vh;
   transition: background-color 0.3s ease;
   background-color: var(--bg-secondary);
+  overflow-x: auto;
 }
 
 @media (max-width: 768px) {
@@ -362,6 +363,7 @@ textarea.form-input {
 
 .data-table {
   width: 100%;
+  min-width: 800px;
   border-collapse: collapse;
   font-size: 0.875rem;
 }
