@@ -104,7 +104,7 @@ export default function ContributionGraph({ logs }) {
         <div className="contribution-months">
           <div className="months-row">
             {monthPositions.map((p, i) => (
-              <span key={i} style={{ position: 'absolute', left: p.idx * 14 + 30, top: -4, fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+              <span key={i} style={{ position: 'absolute', left: p.idx * 15 + 30, top: -4, fontSize: '0.65rem', color: 'var(--text-muted)' }}>
                 {p.name}
               </span>
             ))}
