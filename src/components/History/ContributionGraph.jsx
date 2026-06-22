@@ -119,14 +119,18 @@ export default function ContributionGraph({ logs }) {
                         className={`contribution-cell${day.count > 0 ? ' has-activity' : ''}`}
                         style={{ background: `var(--contribution-${level})` }}
                         onMouseEnter={(e) => {
-                          const l = logsByDate[day.date] || []
-                          setTooltip({
-                            x: e.target.getBoundingClientRect().left,
-                            y: e.target.getBoundingClientRect().top - 10,
-                            date: day.date,
-                            count: day.count,
-                            logs: l
-                          })
+                          try {
+                            const l = logsByDate[day.date] || []
+                            setTooltip({
+                              x: e.target.getBoundingClientRect().left,
+                              y: e.target.getBoundingClientRect().top - 10,
+                              date: day.date,
+                              count: day.count,
+                              logs: l
+                            })
+                          } catch (err) {
+                            console.error('tooltip err:', err)
+                          }
                         }}
                         onMouseLeave={() => setTooltip(null)}
                       />
@@ -148,41 +152,30 @@ export default function ContributionGraph({ logs }) {
       </div>
 
       {tooltip && (
-        <>
-          <div className="contribution-tooltip-bg" onClick={() => setTooltip(null)} />
-          <div
-            className="contribution-tooltip"
-            style={{
-              position: 'fixed',
-              left: Math.min(tooltip.x - 100, window.innerWidth - 240),
-              top: Math.max(tooltip.y - 150, 10),
-              zIndex: 1000
-            }}
-          >
-            <div className="tooltip-header">
-              <strong>{tooltip.date}</strong>
-              <span>{tooltip.count} action(s)</span>
-            </div>
-            {tooltip.logs.length > 0 && (
-              <div className="tooltip-logs">
-                {tooltip.logs.slice(0, 8).map((log, i) => (
-                  <div key={log.id || i} className="tooltip-log-item">
-                    <span className={`tooltip-action-badge action-${log.action}`}>{log.action}</span>
-                    <span className="tooltip-log-desc">
-                      {log.description?.length > 60
-                        ? log.description.slice(0, 60) + '...'
-                        : log.description}
-                    </span>
-                  </div>
-                ))}
-                {tooltip.logs.length > 8 && (
-                  <div className="tooltip-more">+{tooltip.logs.length - 8} more</div>
-                )}
-              </div>
-            )}
-          </div>
-        </>
+        <div
+          className="contribution-tooltip"
+          style={{
+            position: 'fixed',
+            left: tooltip.x,
+            top: tooltip.y - 40,
+            zIndex: 10000,
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 8,
+            padding: '8px 12px',
+            fontSize: '0.75rem',
+            boxShadow: 'var(--shadow-lg)',
+            pointerEvents: 'none',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          <strong>{tooltip.date}</strong>
+          <span style={{ marginLeft: 8, color: 'var(--text-muted)' }}>{tooltip.count} action(s)</span>
+        </div>
       )}
+      <div style={{ position: 'fixed', bottom: 8, right: 8, zIndex: 99999, background: '#000', color: '#fff', padding: '4px 8px', borderRadius: 4, fontSize: '0.7rem', fontFamily: 'monospace' }}>
+        tooltip: {tooltip ? `"${tooltip.date}" (${tooltip.count})` : 'null'}
+      </div>
     </div>
   )
 }
