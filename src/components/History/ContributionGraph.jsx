@@ -118,17 +118,17 @@ export default function ContributionGraph({ logs }) {
                         key={di}
                         className={`contribution-cell${day.count > 0 ? ' has-activity' : ''}`}
                         style={{ background: `var(--contribution-${level})` }}
-                        onMouseEnter={day.count > 0 ? (e) => {
+                        onMouseEnter={(e) => {
                           const rect = e.target.getBoundingClientRect()
-                          setTooltip({
+                          setTooltip(day.count > 0 ? {
                             x: rect.left + rect.width / 2,
                             y: rect.top,
                             date: day.date,
                             count: day.count,
                             logs: logsByDate[day.date] || []
-                          })
-                        } : undefined}
-                        onMouseLeave={day.count > 0 ? () => setTooltip(null) : undefined}
+                          } : null)
+                        }}
+                        onMouseLeave={() => setTooltip(null)}
                       />
                     )
                   })}
