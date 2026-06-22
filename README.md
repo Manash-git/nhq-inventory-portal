@@ -59,7 +59,7 @@ The app will open at `http://localhost:5173`
 | User  | Username            | Password    | Permissions                  |
 |-------|---------------------|-------------|------------------------------|
 | Root  | manash@nhqbd.com    | Man&Mond71  | Full access, reset passwords |
-| Admin | admin               | Man@321%    | Add/Edit/Delete/Export       |
+| Admin | admin               | Admin@321%  | Add/Edit/Delete/Export       |
 | NHQ   | nhq                 | Nhq@321%    | Read-only                    |
 
 ### 5. Import Initial Data
