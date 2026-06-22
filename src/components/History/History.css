@@ -141,15 +141,11 @@
   transition: all 0.1s ease;
 }
 
-.contribution-cell:not(.empty):hover {
+.contribution-cell:hover {
   transform: scale(1.3);
   outline: 2px solid var(--text-primary);
   z-index: 2;
   position: relative;
-}
-
-.contribution-cell.empty {
-  background: transparent;
 }
 
 .contribution-legend {

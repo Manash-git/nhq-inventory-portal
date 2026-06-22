@@ -1,110 +1,97 @@
 import { useState, useMemo } from 'react'
-import { formatDate } from '../../utils/helpers'
 
 const DAY_NAMES = ['', 'Mon', '', 'Wed', '', 'Fri', '']
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-const LEVEL_COLORS = [
-  'transparent',
-  'rgba(56,161,105,0.35)',
-  'rgba(56,161,105,0.55)',
-  'rgba(56,161,105,0.75)',
-  'rgba(56,161,105,1)'
-]
+
+const CELL_SIZE = 12
+const CELL_GAP = 3
+const COL_WIDTH = CELL_SIZE + CELL_GAP
+
+function getLevel(count) {
+  if (count === 0) return 0
+  if (count <= 1) return 1
+  if (count <= 3) return 2
+  if (count <= 6) return 3
+  return 4
+}
 
 export default function ContributionGraph({ logs }) {
   const [tooltip, setTooltip] = useState(null)
 
-  const today = new Date()
-  const oneYearAgo = new Date(today)
-  oneYearAgo.setDate(oneYearAgo.getDate() - 364)
-  oneYearAgo.setHours(0, 0, 0, 0)
+  const { weeks, monthPositions, logsByDate, totalActions } = useMemo(() => {
+    const today = new Date()
+    const oneYearAgo = new Date(today)
+    oneYearAgo.setDate(oneYearAgo.getDate() - 364)
+    oneYearAgo.setHours(0, 0, 0, 0)
 
-  const dayCounts = {}
-  for (let d = new Date(oneYearAgo); d <= today; d.setDate(d.getDate() + 1)) {
-    const key = d.toISOString().split('T')[0]
-    dayCounts[key] = 0
-  }
-
-  ;(logs || []).forEach(log => {
-    if (!log.created_at) return
-    try {
-      const key = new Date(log.created_at).toISOString().split('T')[0]
-      if (dayCounts[key] !== undefined) {
-        dayCounts[key]++
-      }
-    } catch (e) {
-      console.error('Bad date:', log.created_at, e)
+    const dayCounts = {}
+    for (let d = new Date(oneYearAgo); d <= today; d.setDate(d.getDate() + 1)) {
+      dayCounts[d.toISOString().split('T')[0]] = 0
     }
-  })
 
-  const weeks = []
-  let currentWeek = []
-  const startDay = oneYearAgo.getDay()
-  for (let i = 0; i < startDay; i++) {
-    currentWeek.push(null)
-  }
-  for (let d = new Date(oneYearAgo); d <= today; d.setDate(d.getDate() + 1)) {
-    const key = d.toISOString().split('T')[0]
-    currentWeek.push({
-      date: key,
-      count: dayCounts[key] || 0,
-      day: d.getDate(),
-      month: d.getMonth()
+    ;(logs || []).forEach(log => {
+      if (!log.created_at) return
+      try {
+        const key = new Date(log.created_at).toISOString().split('T')[0]
+        if (dayCounts[key] !== undefined) dayCounts[key]++
+      } catch (e) {}
     })
-    if (currentWeek.length === 7) {
+
+    const weeks = []
+    let currentWeek = []
+    const startDay = oneYearAgo.getDay()
+    for (let i = 0; i < startDay; i++) currentWeek.push(null)
+
+    for (let d = new Date(oneYearAgo); d <= today; d.setDate(d.getDate() + 1)) {
+      const key = d.toISOString().split('T')[0]
+      currentWeek.push({ date: key, count: dayCounts[key] || 0 })
+      if (currentWeek.length === 7) {
+        weeks.push(currentWeek)
+        currentWeek = []
+      }
+    }
+    if (currentWeek.length > 0) {
+      while (currentWeek.length < 7) currentWeek.push(null)
       weeks.push(currentWeek)
-      currentWeek = []
     }
-  }
-  if (currentWeek.length > 0) {
-    while (currentWeek.length < 7) currentWeek.push(null)
-    weeks.push(currentWeek)
-  }
 
-  const logsByDate = {}
-  ;(logs || []).forEach(log => {
-    if (!log.created_at) return
-    try {
-      const key = new Date(log.created_at).toISOString().split('T')[0]
-      if (!logsByDate[key]) logsByDate[key] = []
-      logsByDate[key].push(log)
-    } catch (e) {}
-  })
-
-  const monthPositions = []
-  weeks.forEach((week, wi) => {
-    week.forEach((day) => {
-      if (day && day.date) {
-        const d = new Date(day.date)
-        if (d.getDate() === 1) {
-          monthPositions.push({ idx: wi, name: MONTH_NAMES[d.getMonth()] })
+    const monthPositions = []
+    weeks.forEach((week, wi) => {
+      week.forEach(day => {
+        if (day && day.date) {
+          const d = new Date(day.date + 'T12:00:00')
+          if (d.getDate() === 1) {
+            monthPositions.push({ idx: wi, name: MONTH_NAMES[d.getMonth()] })
+          }
         }
-      }
+      })
     })
-  })
 
-  const getLevel = (count) => {
-    if (count === 0) return 0
-    if (count <= 1) return 1
-    if (count <= 3) return 2
-    if (count <= 6) return 3
-    return 4
-  }
+    const logsByDate = {}
+    ;(logs || []).forEach(log => {
+      if (!log.created_at) return
+      try {
+        const key = new Date(log.created_at).toISOString().split('T')[0]
+        if (!logsByDate[key]) logsByDate[key] = []
+        logsByDate[key].push(log)
+      } catch (e) {}
+    })
 
-  const hasActivity = logs && logs.length > 0
+    return { weeks, monthPositions, logsByDate, totalActions: logs?.length || 0 }
+  }, [logs])
 
   return (
     <div className="card contribution-card">
       <div className="contribution-header">
         <h3>Activity Timeline</h3>
-        <span className="contribution-subtitle">{logs?.length || 0} actions in the last year</span>
+        <span className="contribution-subtitle">{totalActions} action{totalActions !== 1 ? 's' : ''} in the last year</span>
       </div>
 
       <div className="contribution-graph">
         <div className="contribution-months">
           <div className="months-row">
             {monthPositions.map((p, i) => (
-              <span key={i} style={{ position: 'absolute', left: p.idx * 15 + 30, top: -4, fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+              <span key={i} style={{ position: 'absolute', left: p.idx * COL_WIDTH + 30, top: -4, fontSize: '0.65rem', color: 'var(--text-muted)' }}>
                 {p.name}
               </span>
             ))}
@@ -124,14 +111,13 @@ export default function ContributionGraph({ logs }) {
               weeks.map((week, wi) => (
                 <div key={wi} className="week-column">
                   {week.map((day, di) => {
-                    if (!day) return <div key={di} className="contribution-cell empty" />
+                    if (!day) return <div key={di} className="contribution-cell" style={{ background: 'var(--contribution-0)' }} />
                     const level = getLevel(day.count)
-                    const bgColor = LEVEL_COLORS[level]
                     return (
                       <div
                         key={di}
                         className="contribution-cell"
-                        style={{ background: bgColor }}
+                        style={{ background: `var(--contribution-${level})` }}
                         onMouseEnter={(e) => {
                           const logs = logsByDate[day.date] || []
                           setTooltip({
@@ -155,16 +141,10 @@ export default function ContributionGraph({ logs }) {
         <div className="contribution-legend">
           <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Less</span>
           {[0, 1, 2, 3, 4].map(l => (
-            <div key={l} style={{ width: 12, height: 12, borderRadius: 2, background: LEVEL_COLORS[l] }} />
+            <div key={l} style={{ width: 12, height: 12, borderRadius: 2, background: `var(--contribution-${l})` }} />
           ))}
           <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>More</span>
         </div>
-
-        {!hasActivity && (
-          <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
-            No activity logs found. Perform actions on products to see them here.
-          </div>
-        )}
       </div>
 
       {tooltip && (
