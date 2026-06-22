@@ -3,6 +3,7 @@ import { ThemeProvider } from './contexts/ThemeContext'
 import { AuthProvider } from './contexts/AuthContext'
 import { NotificationProvider } from './contexts/NotificationContext'
 import { useAuth } from './contexts/AuthContext'
+import { SessionProvider } from './contexts/SessionContext'
 import ProtectedRoute from './components/Common/ProtectedRoute'
 import Navbar from './components/Layout/Navbar'
 import Login from './components/Login/Login'
@@ -52,7 +53,9 @@ export default function App() {
       <ThemeProvider>
         <NotificationProvider>
           <AuthProvider>
-            <AppContent />
+            <SessionProvider>
+              <AppContent />
+            </SessionProvider>
           </AuthProvider>
         </NotificationProvider>
       </ThemeProvider>

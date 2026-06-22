@@ -129,6 +129,7 @@ export function AuthProvider({ children }) {
 
     setUser(userData)
     localStorage.setItem('nhq-current-user', JSON.stringify(userData))
+    localStorage.setItem('nhq-session-expiry', (Date.now() + 3600000).toString())
 
     supabase.from('activity_logs').insert([{
       product_id: null,
@@ -145,6 +146,8 @@ export function AuthProvider({ children }) {
     setUser(null)
     localStorage.removeItem('nhq-current-user')
     localStorage.removeItem('nhq-login-attempts')
+    localStorage.removeItem('nhq-session-expiry')
+    localStorage.removeItem('nhq-all-tabs-closed')
   }, [])
 
   const resetUserPassword = useCallback(async (targetUsername, newPassword) => {

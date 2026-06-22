@@ -626,3 +626,26 @@ textarea.form-input {
 .search-input-wrapper input {
   padding-left: 36px;
 }
+
+.session-warning {
+  position: fixed;
+  top: 64px;
+  left: 0;
+  right: 0;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--warning);
+  color: #1a1f36;
+  font-size: 0.875rem;
+  font-weight: 500;
+  animation: fadeIn 0.3s ease;
+  box-shadow: var(--shadow-md);
+}
+
+.session-warning svg {
+  flex-shrink: 0;
+}
