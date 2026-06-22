@@ -5,7 +5,8 @@ import ContributionGraph from './ContributionGraph'
 import './History.css'
 
 export default function History() {
-  const [activeTab, setActiveTab] = useState('activity')
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('nhq-history-tab') || 'activity')
+  const switchTab = (tab) => { localStorage.setItem('nhq-history-tab', tab); setActiveTab(tab) }
   const [logs, setLogs] = useState([])
   const [archived, setArchived] = useState([])
   const [loading, setLoading] = useState(true)
@@ -106,19 +107,19 @@ export default function History() {
       </div>
 
       <div className="tabs">
-        <button className={`tab ${activeTab === 'activity' ? 'active' : ''}`} onClick={() => setActiveTab('activity')}>
+        <button className={`tab ${activeTab === 'activity' ? 'active' : ''}`} onClick={() => switchTab('activity')}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6, verticalAlign: 'middle' }}>
             <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
           Activity Log
         </button>
-        <button className={`tab ${activeTab === 'timeline' ? 'active' : ''}`} onClick={() => setActiveTab('timeline')}>
+        <button className={`tab ${activeTab === 'timeline' ? 'active' : ''}`} onClick={() => switchTab('timeline')}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6, verticalAlign: 'middle' }}>
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>
           </svg>
           Timeline
         </button>
-        <button className={`tab ${activeTab === 'archived' ? 'active' : ''}`} onClick={() => setActiveTab('archived')}>
+        <button className={`tab ${activeTab === 'archived' ? 'active' : ''}`} onClick={() => switchTab('archived')}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6, verticalAlign: 'middle' }}>
             <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>
           </svg>
