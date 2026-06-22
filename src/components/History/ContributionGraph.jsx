@@ -111,24 +111,27 @@ export default function ContributionGraph({ logs }) {
               weeks.map((week, wi) => (
                 <div key={wi} className="week-column">
                   {week.map((day, di) => {
-                    if (!day) return <div key={di} className="contribution-cell" style={{ background: 'var(--contribution-0)' }} />
+                    if (!day) return <div key={di} className="contribution-cell empty" />
                     const level = getLevel(day.count)
+                    const hasActivity = day.count > 0
                     return (
                       <div
                         key={di}
-                        className="contribution-cell"
+                        className={`contribution-cell${hasActivity ? ' has-activity' : ''}`}
                         style={{ background: `var(--contribution-${level})` }}
-                        onMouseEnter={(e) => {
-                          const logs = logsByDate[day.date] || []
-                          setTooltip({
-                            x: e.target.getBoundingClientRect().left,
-                            y: e.target.getBoundingClientRect().top - 10,
-                            date: day.date,
-                            count: day.count,
-                            logs
-                          })
-                        }}
-                        onMouseLeave={() => setTooltip(null)}
+                        {...(hasActivity ? {
+                          onMouseEnter: (e) => {
+                            const logs = logsByDate[day.date] || []
+                            setTooltip({
+                              x: e.target.getBoundingClientRect().left,
+                              y: e.target.getBoundingClientRect().top - 10,
+                              date: day.date,
+                              count: day.count,
+                              logs
+                            })
+                          },
+                          onMouseLeave: () => setTooltip(null)
+                        } : {})}
                       />
                     )
                   })}
