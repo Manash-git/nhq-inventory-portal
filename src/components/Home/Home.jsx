@@ -209,6 +209,11 @@ export default function Home() {
     }
     const newQty = product.quantity + delta
     if (newQty < 0) return
+
+    setProducts(prev => prev.map(p =>
+      p.id === product.id ? { ...p, quantity: newQty } : p
+    ))
+
     try {
       const { error } = await supabase
         .from('products')
@@ -225,8 +230,10 @@ export default function Home() {
       }])
 
       addToast(`Quantity ${delta > 0 ? 'increased' : 'decreased'} to ${newQty}`, 'success')
-      fetchProducts()
     } catch (err) {
+      setProducts(prev => prev.map(p =>
+        p.id === product.id ? { ...p, quantity: product.quantity } : p
+      ))
       addToast(err.message, 'error')
     }
   }
