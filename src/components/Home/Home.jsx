@@ -403,43 +403,44 @@ export default function Home() {
                       </td>
                       <td style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>{formatDate(product.created_at)}</td>
                       <td>
-                        <div className="actions-cell">
-                          {product.image_url && (
-                            <a
-                              href={product.image_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="btn-icon"
-                              title="View image"
-                              style={{ color: 'var(--accent-primary)' }}
-                            >
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-                              </svg>
-                            </a>
-                          )}
-                          {canEdit && (
-                            <button className="btn-icon" onClick={() => openEdit(product)} title="Edit">
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                              </svg>
-                            </button>
-                          )}
-                          {canEdit && product.quantity <= 1 && (
-                            <button className="btn-icon" onClick={() => openArchive(product)} title="Archive" style={{ color: 'var(--warning)' }}>
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>
-                              </svg>
-                            </button>
-                          )}
-                          {canEdit && (
-                            <button className="btn-icon" onClick={() => openDelete(product)} title="Delete" style={{ color: 'var(--danger)' }}>
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                              </svg>
-                            </button>
-                          )}
+                        <div className="actions-cell" style={{ display: 'flex', gap: 4, alignItems: 'center', minHeight: 36 }}>
+                          <span style={{ width: 36, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {product.image_url && (
+                              <a href={product.image_url} target="_blank" rel="noopener noreferrer" className="btn-icon" title="View image" style={{ color: 'var(--accent-primary)' }}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                                </svg>
+                              </a>
+                            )}
+                          </span>
+                          <span style={{ width: 36, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {canEdit && (
+                              <button className="btn-icon" onClick={() => openEdit(product)} title="Edit">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                </svg>
+                              </button>
+                            )}
+                          </span>
+                          <span style={{ width: 36, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {canEdit && product.quantity <= 1 && (
+                              <button className="btn-icon" onClick={() => openArchive(product)} title="Archive" style={{ color: 'var(--warning)' }}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>
+                                </svg>
+                              </button>
+                            )}
+                          </span>
+                          <span style={{ width: 36, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {canEdit && (
+                              <button className="btn-icon" onClick={() => openDelete(product)} title="Delete" style={{ color: 'var(--danger)' }}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                </svg>
+                              </button>
+                            )}
+                          </span>
                         </div>
                       </td>
                     </tr>
