@@ -129,6 +129,15 @@ export function AuthProvider({ children }) {
 
     setUser(userData)
     localStorage.setItem('nhq-current-user', JSON.stringify(userData))
+
+    supabase.from('activity_logs').insert([{
+      product_id: null,
+      action: 'login',
+      description: `${userEntry.name} (${userEntry.role}) logged in`,
+      user_id: userEntry.username,
+      user_name: userEntry.name
+    }]).then().catch(() => {})
+
     return userData
   }, [])
 

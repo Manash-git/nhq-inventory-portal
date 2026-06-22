@@ -20,7 +20,7 @@ CREATE TABLE products (
 CREATE TABLE activity_logs (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   product_id UUID REFERENCES products(id) ON DELETE SET NULL,
-  action TEXT NOT NULL CHECK (action IN ('add', 'delete', 'edit', 'archived')),
+  action TEXT NOT NULL CHECK (action IN ('add', 'delete', 'edit', 'archived', 'login')),
   description TEXT,
   user_id TEXT,
   user_name TEXT,
@@ -49,7 +49,11 @@ CREATE POLICY "Allow all for authenticated" ON products
 CREATE POLICY "Allow all for authenticated" ON activity_logs
   FOR ALL USING (auth.role() = 'authenticated');
 
--- 6. Auto-update updated_at timestamp
+-- 7. Allow 'login' action (run once if table already exists)
+-- ALTER TABLE activity_logs DROP CONSTRAINT activity_logs_action_check;
+-- ALTER TABLE activity_logs ADD CONSTRAINT activity_logs_action_check CHECK (action IN ('add', 'delete', 'edit', 'archived', 'login'));
+
+-- 8. Auto-update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN

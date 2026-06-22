@@ -154,19 +154,20 @@ export default function Home() {
   const handleDelete = async () => {
     if (!selectedProduct || deleteConfirm !== 'Delete') return
     try {
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', selectedProduct.id)
-      if (error) throw error
-
-      await supabase.from('activity_logs').insert([{
+      const { error: logError } = await supabase.from('activity_logs').insert([{
         product_id: selectedProduct.id,
         action: 'delete',
         description: `Deleted "${selectedProduct.product_description}"`,
         user_id: user?.id,
         user_name: user?.name
       }])
+      if (logError) throw logError
+
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', selectedProduct.id)
+      if (error) throw error
 
       addToast('Product deleted.', 'info')
       setShowDeleteModal(false)
