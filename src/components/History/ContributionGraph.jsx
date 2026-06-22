@@ -113,25 +113,22 @@ export default function ContributionGraph({ logs }) {
                   {week.map((day, di) => {
                     if (!day) return <div key={di} className="contribution-cell empty" />
                     const level = getLevel(day.count)
-                    const hasActivity = day.count > 0
                     return (
                       <div
                         key={di}
-                        className={`contribution-cell${hasActivity ? ' has-activity' : ''}`}
+                        className={`contribution-cell${day.count > 0 ? ' has-activity' : ''}`}
                         style={{ background: `var(--contribution-${level})` }}
-                        {...(hasActivity ? {
-                          onMouseEnter: (e) => {
-                            const logs = logsByDate[day.date] || []
-                            setTooltip({
-                              x: e.target.getBoundingClientRect().left,
-                              y: e.target.getBoundingClientRect().top - 10,
-                              date: day.date,
-                              count: day.count,
-                              logs
-                            })
-                          },
-                          onMouseLeave: () => setTooltip(null)
-                        } : {})}
+                        onMouseEnter={day.count > 0 ? (e) => {
+                          const logs = logsByDate[day.date] || []
+                          setTooltip({
+                            x: e.target.getBoundingClientRect().left,
+                            y: e.target.getBoundingClientRect().top - 10,
+                            date: day.date,
+                            count: day.count,
+                            logs
+                          })
+                        } : undefined}
+                        onMouseLeave={day.count > 0 ? () => setTooltip(null) : undefined}
                       />
                     )
                   })}
