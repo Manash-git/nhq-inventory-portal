@@ -131,13 +131,35 @@ export function AuthProvider({ children }) {
     localStorage.setItem('nhq-current-user', JSON.stringify(userData))
     localStorage.setItem('nhq-session-expiry', (Date.now() + 3600000).toString())
 
-    supabase.from('activity_logs').insert([{
+    const loginLog = {
+      id: crypto.randomUUID(),
       product_id: null,
       action: 'login',
       description: `${userEntry.name} (${userEntry.role}) logged in`,
       user_id: userEntry.username,
-      user_name: userEntry.name
-    }]).then().catch(() => {})
+      user_name: userEntry.name,
+      created_at: new Date().toISOString()
+    }
+
+    try {
+      const { error } = await supabase.from('activity_logs').insert({
+        product_id: null,
+        action: 'login',
+        description: loginLog.description,
+        user_id: userEntry.username,
+        user_name: userEntry.name
+      })
+      if (error) console.error('Login log insert failed:', error)
+    } catch (err) {
+      console.error('Login log insert error:', err)
+    }
+
+    try {
+      const stored = JSON.parse(localStorage.getItem('nhq-login-logs') || '[]')
+      stored.unshift(loginLog)
+      if (stored.length > 500) stored.length = 500
+      localStorage.setItem('nhq-login-logs', JSON.stringify(stored))
+    } catch {}
 
     return userData
   }, [])

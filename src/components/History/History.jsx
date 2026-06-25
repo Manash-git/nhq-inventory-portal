@@ -56,7 +56,21 @@ export default function History() {
     Promise.all([fetchLogs(), fetchArchived()]).finally(() => setLoading(false))
   }, [fetchLogs, fetchArchived])
 
-  const filteredLogs = logs.filter(l => {
+  const localLoginLogs = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('nhq-login-logs') || '[]')
+    } catch {
+      return []
+    }
+  })()
+
+  const allLogsWithLocal = (() => {
+    const localIds = new Set(localLoginLogs.map(l => l.id))
+    const filteredRemote = logs.filter(l => l.action !== 'login' || !localIds.has(l.id))
+    return [...localLoginLogs, ...filteredRemote]
+  })()
+
+  const filteredLogs = allLogsWithLocal.filter(l => {
     const q = search.toLowerCase()
     const matchesSearch =
       l.description?.toLowerCase().includes(q) ||
