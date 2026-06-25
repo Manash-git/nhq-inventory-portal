@@ -14,6 +14,7 @@ A modern, secure web portal for managing office hardware inventory. Features rol
 - **Quantity Management:** Increment/decrement stock levels
 - **Excel Export/Import:** Download inventory as Excel, bulk import from Excel
 - **Activity Logs:** Full audit trail with GitHub-style contribution timeline
+- **Login Activity:** Role-based login monitoring — Root sees all, Admin sees admin/nhq, NHQ sees own
 - **Archived Products:** View and manage archived inventory
 - **Role Management:** Root user can reset admin/nhq passwords
 - **Dual Themes:** Cohesity-inspired and NHQBD-inspired themes with dark mode
@@ -187,7 +188,7 @@ Netlify will automatically rebuild and deploy! 🎉
 │   ├── components/
 │   │   ├── Login/          # Login page with security
 │   │   ├── Home/           # Inventory, CRUD, chart, export
-│   │   ├── History/        # Activity logs, timeline, archived
+│   │   ├── History/        # Activity logs (incl. login activity), timeline, archived
 │   │   ├── About/          # About page with developer info
 │   │   ├── Common/         # Modal, ProtectedRoute, SearchFilter
 │   │   └── Layout/         # Navbar with theme/user menu
@@ -204,6 +205,10 @@ Netlify will automatically rebuild and deploy! 🎉
 
 - **3 failed attempts** = 10-minute account lockout
 - **Role-based access** (Root/Admin/NHQ)
+- **Login activity monitoring** with role-based visibility:
+  - **Root:** sees login activity of all users (root, admin, nhq)
+  - **Admin:** sees login activity of admin and nhq users
+  - **NHQ:** sees only their own login activity
 - **Row Level Security** on Supabase tables
 - **Password hashing** via Supabase Auth
 - **Root password reset** via security questions
