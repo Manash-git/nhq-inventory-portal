@@ -9,7 +9,6 @@ import Navbar from './components/Layout/Navbar'
 import Login from './components/Login/Login'
 import Home from './components/Home/Home'
 import History from './components/History/History'
-import LoginActivity from './components/LoginActivity/LoginActivity'
 import About from './components/About/About'
 
 function AppContent() {
@@ -39,7 +38,6 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/history" element={<History />} />
-          <Route path="/login-activity" element={<LoginActivity />} />
           <Route path="/about" element={<About />} />
           <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
