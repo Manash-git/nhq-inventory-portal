@@ -43,13 +43,11 @@ export default function Login() {
       const msg = err.message
       setLoginError(msg)
 
-      // Parse remaining attempts from error
-      const attemptsMatch = msg.match(/(\d+) attempt/)
-      if (attemptsMatch) {
-        setRemainingAttempts(parseInt(attemptsMatch[1]))
+      if (err.remainingAttempts !== undefined) {
+        setRemainingAttempts(err.remainingAttempts)
       }
 
-      if (msg.includes('locked')) {
+      if (err.locked) {
         setLockedMessage(msg)
       }
     } finally {

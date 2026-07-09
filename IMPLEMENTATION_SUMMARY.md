@@ -14,7 +14,7 @@ sessions           - Server-side session tracking
 ```
 
 ### Key Tables
-1. **users** - username, password, display_name, role (super_user/admin/read_only), is_active, failed_attempts, locked_until
+1. **users** - username, password, role (super_user/admin/read_only), is_active, failed_attempts, locked_until
 2. **products** - product_description, part_number, category, quantity, image_url, is_archived, archived_at, created_by
 3. **activity_logs** - product_id, user_id, user_name, user_role, action, description, created_at
 4. **sessions** - user_id, token, expires_at, is_valid

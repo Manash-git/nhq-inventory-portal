@@ -31,7 +31,8 @@ export default function Home() {
     part_number: '',
     category: '',
     quantity: 1,
-    image_url: ''
+    image_url: '',
+    inventory_box_serial: ''
   })
   const [sortBy, setSortBy] = useState('created_at')
   const [sortDir, setSortDir] = useState('desc')
@@ -98,19 +99,21 @@ export default function Home() {
     return (
       p.product_description?.toLowerCase().includes(q) ||
       p.part_number?.toLowerCase().includes(q) ||
-      p.category?.toLowerCase().includes(q)
+      p.category?.toLowerCase().includes(q) ||
+      p.inventory_box_serial?.toLowerCase().includes(q)
     )
   })
 
-  const logActivity = async (productId, action, description) => {
+  const logActivity = async (productId, action, description, changes) => {
     try {
       await supabase.from('activity_logs').insert({
         product_id: productId,
         user_id: user.id,
-        user_name: user.display_name,
+        user_name: user.username,
         user_role: user.role,
         action: action,
-        description: description
+        description: description,
+        changes: changes || null
       })
     } catch (err) {
       console.error('Failed to log activity:', err)
@@ -118,7 +121,7 @@ export default function Home() {
   }
 
   const resetForm = () => {
-    setFormData({ product_description: '', part_number: '', category: '', quantity: 1, image_url: '' })
+    setFormData({ product_description: '', part_number: '', category: '', quantity: 1, image_url: '', inventory_box_serial: '' })
   }
 
   const handleAdd = async (e) => {
@@ -136,6 +139,7 @@ export default function Home() {
           category: formData.category,
           quantity: formData.quantity,
           image_url: formData.image_url || null,
+          inventory_box_serial: formData.inventory_box_serial || null,
           created_by: user.id
         }])
         .select()
@@ -164,12 +168,23 @@ export default function Home() {
           part_number: formData.part_number,
           category: formData.category,
           image_url: formData.image_url || null,
+          inventory_box_serial: formData.inventory_box_serial || null,
           updated_at: new Date().toISOString()
         })
         .eq('id', selectedProduct.id)
       if (error) throw error
 
-      await logActivity(selectedProduct.id, 'edit', `Edited "${formData.product_description}"`)
+      const changes = {}
+      if (selectedProduct.product_description !== formData.product_description)
+        changes.product_description = { from: selectedProduct.product_description, to: formData.product_description }
+      if (selectedProduct.part_number !== formData.part_number)
+        changes.part_number = { from: selectedProduct.part_number, to: formData.part_number }
+      if (selectedProduct.image_url !== formData.image_url)
+        changes.image_url = { from: selectedProduct.image_url, to: formData.image_url }
+      if (selectedProduct.inventory_box_serial !== formData.inventory_box_serial)
+        changes.inventory_box_serial = { from: selectedProduct.inventory_box_serial, to: formData.inventory_box_serial }
+
+      await logActivity(selectedProduct.id, 'edit', `Edited "${formData.product_description}"`, changes)
 
       addToast('Product updated!', 'success')
       setShowEditModal(false)
@@ -268,7 +283,8 @@ export default function Home() {
         'Part Number': p.part_number,
         'Category': p.category,
         'Quantity': p.quantity,
-        'Date Added': formatDate(p.created_at)
+        'Date Added': formatDate(p.created_at),
+        'Inventory Box Serial': p.inventory_box_serial || ''
       }))
 
       const ws = XLSX.utils.json_to_sheet(wsData)
@@ -277,7 +293,7 @@ export default function Home() {
       const date = new Date().toISOString().split('T')[0]
       XLSX.writeFile(wb, `Inventory-${date}.xls`)
 
-      await logActivity(null, 'export', `${user.display_name} exported inventory`)
+      await logActivity(null, 'export', `${user.username} exported inventory`)
 
       addToast('Exported successfully!', 'success')
     } catch (err) {
@@ -292,7 +308,8 @@ export default function Home() {
       part_number: product.part_number,
       category: product.category,
       quantity: product.quantity,
-      image_url: product.image_url || ''
+      image_url: product.image_url || '',
+      inventory_box_serial: product.inventory_box_serial || ''
     })
     setShowEditModal(true)
   }
@@ -393,6 +410,10 @@ export default function Home() {
                     <th onClick={() => handleSort('created_at')} style={{ cursor: 'pointer' }}>
                       Date Added <SortIcon col="created_at" />
                     </th>
+                    <th onClick={() => handleSort('inventory_box_serial')} style={{ cursor: 'pointer' }}>
+                      Inventory Box Serial <SortIcon col="inventory_box_serial" />
+                    </th>
+                    <th style={{ width: 80 }}>Image</th>
                     {canModifyInventory && <th style={{ width: 200 }}>Actions</th>}
                   </tr>
                 </thead>
@@ -423,16 +444,23 @@ export default function Home() {
                         </div>
                       </td>
                       <td style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>{formatDate(product.created_at)}</td>
+                      <td style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                        {product.inventory_box_serial || <span className="text-muted">—</span>}
+                      </td>
+                      <td>
+                        {product.image_url ? (
+                          <a href={product.image_url} target="_blank" rel="noopener noreferrer" className="btn-icon" title="View image" style={{ color: 'var(--accent-primary)' }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                            </svg>
+                          </a>
+                        ) : (
+                          <span className="text-muted">—</span>
+                        )}
+                      </td>
                       {canModifyInventory && (
                         <td>
                           <div className="actions-cell">
-                            {product.image_url && (
-                              <a href={product.image_url} target="_blank" rel="noopener noreferrer" className="btn-icon" title="View image" style={{ color: 'var(--accent-primary)' }}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-                                </svg>
-                              </a>
-                            )}
                             <button className="btn-icon" onClick={() => openEdit(product)} title="Edit">
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -514,6 +542,12 @@ export default function Home() {
             </div>
           </div>
           <div className="form-group">
+            <label className="form-label">Inventory Box Serial</label>
+            <input className="form-input" placeholder="Enter box serial number"
+              value={formData.inventory_box_serial}
+              onChange={e => setFormData(p => ({ ...p, inventory_box_serial: e.target.value }))} />
+          </div>
+          <div className="form-group">
             <label className="form-label">Image URL (optional)</label>
             <input
               className="form-input"
@@ -559,6 +593,12 @@ export default function Home() {
               onChange={e => setFormData(p => ({ ...p, category: e.target.value }))}>
               {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Inventory Box Serial</label>
+            <input className="form-input" placeholder="Enter box serial number"
+              value={formData.inventory_box_serial}
+              onChange={e => setFormData(p => ({ ...p, inventory_box_serial: e.target.value }))} />
           </div>
           <div className="form-group">
             <label className="form-label">Image URL</label>

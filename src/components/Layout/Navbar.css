@@ -213,3 +213,51 @@
     z-index: -1;
   }
 }
+
+.btn-icon-only {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 6px !important;
+  min-width: 32px;
+  min-height: 32px;
+  transition: all 0.2s ease;
+}
+
+.btn-icon-only:hover {
+  transform: scale(1.08);
+}
+
+.btn-icon-only:active {
+  transform: scale(0.95);
+}
+
+.pwd-toggle-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.15s ease;
+}
+
+.pwd-toggle-btn:hover {
+  color: var(--text-primary);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}

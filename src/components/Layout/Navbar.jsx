@@ -28,6 +28,15 @@ export default function Navbar() {
   // Reset password form
   const [resetUserId, setResetUserId] = useState(null)
   const [resetNewPassword, setResetNewPassword] = useState('')
+  const [resetConfirmPassword, setResetConfirmPassword] = useState('')
+  const [resetLoading, setResetLoading] = useState(false)
+  const [resetShowPwd, setResetShowPwd] = useState(false)
+  const [resetShowConfirm, setResetShowConfirm] = useState(false)
+
+  // Delete user modal
+  const [deleteUserTarget, setDeleteUserTarget] = useState(null)
+  const [deleteConfirmUsername, setDeleteConfirmUsername] = useState('')
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   const menuRef = useRef()
   const themeRef = useRef()
@@ -92,7 +101,7 @@ export default function Navbar() {
       return
     }
     try {
-      await createUser(createForm.username, createForm.password, createForm.username, createForm.role)
+      await createUser(createForm.username, createForm.password, createForm.role)
       addToast(`User "${createForm.username}" created!`, 'success')
       setShowCreateUserModal(false)
       setCreateForm({ username: '', password: '', role: 'read_only' })
@@ -102,34 +111,62 @@ export default function Navbar() {
     }
   }
 
-  const handleDeleteUser = async (userId, username) => {
-    if (!window.confirm(`Are you sure you want to delete user "${username}"?`)) return
+  const openDeleteModal = (u) => {
+    setDeleteUserTarget(u)
+    setDeleteConfirmUsername('')
+    setDeleteLoading(false)
+  }
+
+  const handleDeleteUser = async () => {
+    if (!deleteUserTarget || deleteConfirmUsername !== deleteUserTarget.username) return
+    setDeleteLoading(true)
     try {
-      await deleteUser(userId)
-      addToast(`User "${username}" deleted.`, 'info')
+      await deleteUser(deleteUserTarget.id)
+      addToast(`User "${deleteUserTarget.username}" deleted.`, 'success')
+      setDeleteUserTarget(null)
+      setDeleteConfirmUsername('')
       loadUsers()
     } catch (err) {
       addToast(err.message, 'error')
+    } finally {
+      setDeleteLoading(false)
     }
   }
 
+  const openResetModal = (u) => {
+    setResetUserId(u.id)
+    setResetNewPassword('')
+    setResetConfirmPassword('')
+    setResetLoading(false)
+    setResetShowPwd(false)
+    setResetShowConfirm(false)
+  }
+
   const handleResetPassword = async () => {
-    if (!resetUserId || !resetNewPassword) {
-      addToast('Please enter a new password.', 'error')
+    if (!resetUserId || !resetNewPassword || !resetConfirmPassword) {
+      addToast('Please fill all fields.', 'error')
+      return
+    }
+    if (resetNewPassword !== resetConfirmPassword) {
+      addToast('Passwords do not match.', 'error')
       return
     }
     if (resetNewPassword.length < 4) {
       addToast('Password must be at least 4 characters.', 'error')
       return
     }
+    setResetLoading(true)
     try {
       await resetUserPassword(resetUserId, resetNewPassword)
       addToast('Password reset successfully!', 'success')
       setResetUserId(null)
       setResetNewPassword('')
+      setResetConfirmPassword('')
       loadUsers()
     } catch (err) {
       addToast(err.message, 'error')
+    } finally {
+      setResetLoading(false)
     }
   }
 
@@ -227,10 +264,10 @@ export default function Navbar() {
             <div className="dropdown" ref={menuRef}>
               <button className="navbar-user-btn" onClick={() => setShowUserMenu(!showUserMenu)}>
                 <div className="navbar-avatar">
-                  {user?.display_name?.charAt(0)?.toUpperCase() || 'U'}
+                  {user?.username?.charAt(0)?.toUpperCase() || 'U'}
                 </div>
                 <div className="navbar-user-info">
-                  <span className="navbar-user-name">{user?.display_name || 'User'}</span>
+                  <span className="navbar-user-name">{user?.username || 'User'}</span>
                   <span className="navbar-user-role">{user?.role?.replace('_', ' ')}</span>
                 </div>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
@@ -326,7 +363,6 @@ export default function Navbar() {
             <thead>
               <tr>
                 <th>Username</th>
-                <th>Name</th>
                 <th>Role</th>
                 <th>Status</th>
                 <th>Actions</th>
@@ -336,7 +372,6 @@ export default function Navbar() {
               {users.map(u => (
                 <tr key={u.id}>
                   <td><code>{u.username}</code></td>
-                  <td>{u.display_name}</td>
                   <td>
                     <span className="badge" style={{
                       background: u.role === 'super_user' ? 'rgba(59, 130, 246, 0.1)' :
@@ -359,11 +394,16 @@ export default function Navbar() {
                     <div style={{ display: 'flex', gap: 6 }}>
                       {u.id !== user.id && u.is_active && (
                         <>
-                          <button className="btn btn-sm btn-outline" onClick={() => { setResetUserId(u.id); setResetNewPassword('') }}>
-                            Reset Pwd
+                          <button className="btn btn-sm btn-outline btn-icon-only" title="Reset Password" onClick={() => openResetModal(u)}>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                            </svg>
                           </button>
-                          <button className="btn btn-sm btn-danger" onClick={() => handleDeleteUser(u.id, u.username)}>
-                            Delete
+                          <button className="btn btn-sm btn-danger btn-icon-only" title="Delete User" onClick={() => openDeleteModal(u)}>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                              <line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>
+                            </svg>
                           </button>
                         </>
                       )}
@@ -375,17 +415,131 @@ export default function Navbar() {
           </table>
         </div>
 
-        {/* Reset Password Inline */}
-        {resetUserId && (
-          <div style={{ marginTop: 16, padding: 16, background: 'var(--bg-secondary)', borderRadius: 8, border: '1px solid var(--border-light)' }}>
-            <label className="form-label">New Password for selected user</label>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <input type="password" className="form-input" placeholder="Enter new password"
-                value={resetNewPassword} onChange={e => setResetNewPassword(e.target.value)} style={{ flex: 1 }} />
-              <button className="btn btn-primary" onClick={handleResetPassword}>Reset</button>
-              <button className="btn btn-secondary" onClick={() => setResetUserId(null)}>Cancel</button>
-            </div>
+      </Modal>
+
+      {/* Reset Password Modal */}
+      <Modal isOpen={!!resetUserId} onClose={() => setResetUserId(null)} title="Reset Password" width="420px">
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 16 }}>
+          Set a new password for this user.
+        </p>
+        <div className="form-group">
+          <label className="form-label">New Password</label>
+          <div style={{ position: 'relative' }}>
+            <input
+              type={resetShowPwd ? 'text' : 'password'}
+              className="form-input"
+              placeholder="Enter new password"
+              value={resetNewPassword}
+              onChange={e => setResetNewPassword(e.target.value)}
+              autoFocus
+            />
+            <button
+              type="button"
+              className="pwd-toggle-btn"
+              onClick={() => setResetShowPwd(r => !r)}
+              aria-label={resetShowPwd ? 'Hide password' : 'Show password'}
+              tabIndex={-1}
+            >
+              {resetShowPwd ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                  <line x1="1" y1="1" x2="23" y2="23"/>
+                </svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+              )}
+            </button>
           </div>
+        </div>
+        <div className="form-group">
+          <label className="form-label">Confirm Password</label>
+          <div style={{ position: 'relative' }}>
+            <input
+              type={resetShowConfirm ? 'text' : 'password'}
+              className="form-input"
+              placeholder="Confirm new password"
+              value={resetConfirmPassword}
+              onChange={e => setResetConfirmPassword(e.target.value)}
+            />
+            <button
+              type="button"
+              className="pwd-toggle-btn"
+              onClick={() => setResetShowConfirm(r => !r)}
+              aria-label={resetShowConfirm ? 'Hide password' : 'Show password'}
+              tabIndex={-1}
+            >
+              {resetShowConfirm ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                  <line x1="1" y1="1" x2="23" y2="23"/>
+                </svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+              )}
+            </button>
+          </div>
+          {resetConfirmPassword && resetNewPassword !== resetConfirmPassword && (
+            <span style={{ fontSize: '0.75rem', color: '#e53e3e', marginTop: 4, display: 'block' }}>Passwords do not match.</span>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+          <button className="btn btn-secondary" onClick={() => setResetUserId(null)} disabled={resetLoading}>Cancel</button>
+          <button className="btn btn-primary" onClick={handleResetPassword} disabled={resetLoading || !resetNewPassword || !resetConfirmPassword || resetNewPassword !== resetConfirmPassword}>
+            {resetLoading ? 'Resetting…' : 'Reset Password'}
+          </button>
+        </div>
+      </Modal>
+
+      {/* Delete User Modal */}
+      <Modal isOpen={!!deleteUserTarget} onClose={() => setDeleteUserTarget(null)} title="Delete User" width="420px">
+        {deleteUserTarget && (
+          <>
+            <div style={{ background: 'rgba(229, 62, 62, 0.08)', border: '1px solid rgba(229, 62, 62, 0.25)', borderRadius: 8, padding: 14, marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e53e3e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                <strong style={{ color: '#e53e3e' }}>Permanent Action</strong>
+              </div>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                You are about to permanently delete user <strong>{deleteUserTarget.username}</strong>. This action <strong>cannot</strong> be undone.
+              </p>
+            </div>
+            <div className="form-group">
+              <label className="form-label">
+                Type <strong style={{ color: 'var(--text-primary)' }}>{deleteUserTarget.username}</strong> to confirm:
+              </label>
+              <input
+                className="form-input"
+                placeholder={`Type "${deleteUserTarget.username}" to confirm`}
+                value={deleteConfirmUsername}
+                onChange={e => setDeleteConfirmUsername(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+              <button className="btn btn-secondary" onClick={() => setDeleteUserTarget(null)} disabled={deleteLoading}>Cancel</button>
+              <button
+                className="btn btn-danger"
+                onClick={handleDeleteUser}
+                disabled={deleteLoading || deleteConfirmUsername !== deleteUserTarget.username}
+                style={{ minWidth: 90 }}
+              >
+                {deleteLoading ? (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="spin">
+                      <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="32" strokeLinecap="round"/>
+                    </svg>
+                    Deleting…
+                  </span>
+                ) : 'Delete'}
+              </button>
+            </div>
+          </>
         )}
       </Modal>
 
