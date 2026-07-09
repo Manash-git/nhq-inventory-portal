@@ -416,7 +416,7 @@ export default function History() {
             </div>
             <select className="form-input" style={{ width: 150 }} value={archiveCategoryId}
               onChange={e => { setArchiveCategoryId(e.target.value); setArchivePage(1) }}>
-              <option value="">All Categories</option>
+              <option value="">All Teams</option>
               {archiveCategories.map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
@@ -442,10 +442,10 @@ export default function History() {
                       Part No {archiveSort === 'part_number' ? (archiveSortDir === 'asc' ? '↑' : '↓') : '↕'}
                     </th>
                     <th onClick={() => handleArchiveSort('category')} style={{ cursor: 'pointer' }}>
-                      Category {archiveSort === 'category' ? (archiveSortDir === 'asc' ? '↑' : '↓') : '↕'}
+                      Team {archiveSort === 'category' ? (archiveSortDir === 'asc' ? '↑' : '↓') : '↕'}
                     </th>
                     <th>Quantity</th>
-                    <th>Box Serial</th>
+                    <th>Inventory Serial</th>
                     <th onClick={() => handleArchiveSort('archived_at')} style={{ cursor: 'pointer' }}>
                       Archived Date {archiveSort === 'archived_at' ? (archiveSortDir === 'asc' ? '↑' : '↓') : '↕'}
                     </th>
@@ -456,10 +456,10 @@ export default function History() {
                     <tr key={p.id}>
                       <td style={{ fontWeight: 500 }}>{p.product_description}</td>
                       <td><code style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>{p.part_number}</code></td>
-                      <td><span className="badge badge-warning">{p.category}</span></td>
+                      <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{p.category}</td>
                       <td>{p.quantity}</td>
                       <td style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-                        {p.inventory_box_serial || <span className="text-muted">—</span>}
+                        {p.inventory_box_serial || <span className="text-muted">--</span>}
                       </td>
                       <td style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>{formatDate(p.archived_at)}</td>
                     </tr>

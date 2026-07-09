@@ -16,6 +16,7 @@ export default function Home() {
   const { addToast } = useNotification()
 
   const [products, setProducts] = useState([])
+  const [rawProducts, setRawProducts] = useState([])
   const [localCategories, setLocalCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -53,27 +54,30 @@ export default function Home() {
       setLoading(true)
       const { data, error } = await supabase.rpc('get_products', { p_archived: false })
       if (error) throw error
-
-      const sorted = [...(data || [])].sort((a, b) => {
-        const dir = sortDir === 'asc' ? 1 : -1
-        if (sortBy === 'category') {
-          return (a.category || '').localeCompare(b.category || '') * dir
-        }
-        if (sortBy === 'quantity') {
-          return (a.quantity - b.quantity) * dir
-        }
-        if (sortBy === 'created_at' || sortBy === 'updated_at') {
-          return (new Date(a[sortBy] || 0) - new Date(b[sortBy] || 0)) * dir
-        }
-        return ((a[sortBy] || '').toString().localeCompare((b[sortBy] || '').toString())) * dir
-      })
-      setProducts(sorted)
+      setRawProducts(data || [])
     } catch (err) {
       addToast(err.message, 'error')
     } finally {
       setLoading(false)
     }
-  }, [sortBy, sortDir, addToast])
+  }, [addToast])
+
+  useEffect(() => {
+    const sorted = [...rawProducts].sort((a, b) => {
+      const dir = sortDir === 'asc' ? 1 : -1
+      if (sortBy === 'category') {
+        return (a.category || '').localeCompare(b.category || '') * dir
+      }
+      if (sortBy === 'quantity') {
+        return (a.quantity - b.quantity) * dir
+      }
+      if (sortBy === 'created_at' || sortBy === 'updated_at') {
+        return (new Date(a[sortBy] || 0) - new Date(b[sortBy] || 0)) * dir
+      }
+      return ((a[sortBy] || '').toString().localeCompare((b[sortBy] || '').toString())) * dir
+    })
+    setProducts(sorted)
+  }, [rawProducts, sortBy, sortDir])
 
   useEffect(() => {
     fetchProducts()
@@ -120,7 +124,7 @@ export default function Home() {
   const handleAdd = async (e) => {
     e.preventDefault()
     if (!formData.product_description || !formData.part_number || !formData.category_id) {
-      addToast('Please fill Hardware Description, Part Number and Category.', 'error')
+      addToast('Please fill Hardware Description, Part Number and Team.', 'error')
       return
     }
     try {
@@ -241,10 +245,10 @@ export default function Home() {
       const wsData = (data || []).map(p => ({
         'Product Description': p.product_description,
         'Part Number': p.part_number,
-        'Category': p.category,
+        'Team': p.category,
         'Quantity': p.quantity,
         'Date Added': formatDate(p.created_at),
-        'Inventory Box Serial': p.inventory_box_serial || '—'
+        'Inventory Serial': p.inventory_box_serial || '--'
       }))
 
       const ws = XLSX.utils.json_to_sheet(wsData)
@@ -293,8 +297,8 @@ export default function Home() {
   }
 
   const SortIcon = ({ col }) => {
-    if (sortBy !== col) return <span className="sort-icon-inactive">↕</span>
-    return <span>{sortDir === 'asc' ? '↑' : '↓'}</span>
+    if (sortBy !== col) return <span className="sort-icon-inactive" style={{ opacity: 0.4 }}>↕</span>
+    return <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>
   }
 
   const isValidUrl = (url) => {
@@ -369,7 +373,7 @@ export default function Home() {
                       Part Number <SortIcon col="part_number" />
                     </th>
                     <th onClick={() => handleSort('category')} style={{ cursor: 'pointer' }}>
-                      Category <SortIcon col="category" />
+                      Team <SortIcon col="category" />
                     </th>
                     <th onClick={() => handleSort('quantity')} style={{ cursor: 'pointer', width: 120 }}>
                       Quantity <SortIcon col="quantity" />
@@ -378,7 +382,7 @@ export default function Home() {
                       Date Added <SortIcon col="created_at" />
                     </th>
                     <th onClick={() => handleSort('inventory_box_serial')} style={{ cursor: 'pointer' }}>
-                      Inventory Box Serial <SortIcon col="inventory_box_serial" />
+                      Inventory Serial <SortIcon col="inventory_box_serial" />
                     </th>
                     <th style={{ width: 80 }}>Image</th>
                     {canModifyInventory && <th style={{ width: 200 }}>Actions</th>}
@@ -388,11 +392,11 @@ export default function Home() {
                   {filtered.map((product, idx) => (
                     <tr key={product.id}>
                       <td className="text-muted">{idx + 1}</td>
-                      <td className="cell-single-line" style={{ fontWeight: 500, maxWidth: 400 }}>{product.product_description}</td>
+                      <td style={{ fontWeight: 500, wordWrap: 'break-word', whiteSpace: 'normal', maxWidth: 400 }}>{product.product_description}</td>
                       <td className="cell-single-line" style={{ maxWidth: 200 }}>
                         <code style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>{product.part_number}</code>
                       </td>
-                      <td><span className="badge badge-primary">{product.category}</span></td>
+                      <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{product.category}</td>
                       <td>
                         <div className="qty-control">
                           {canModifyInventory && (
@@ -412,17 +416,17 @@ export default function Home() {
                       </td>
                       <td style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>{formatDate(product.created_at)}</td>
                       <td style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-                        {product.inventory_box_serial || <span className="text-muted">—</span>}
+                        {product.inventory_box_serial || <span className="text-muted">--</span>}
                       </td>
                       <td>
                         {product.image_url ? (
                           <a href={product.image_url} target="_blank" rel="noopener noreferrer" className="btn-icon" title="View image" style={{ color: 'var(--accent-primary)' }}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
                             </svg>
                           </a>
                         ) : (
-                          <span className="text-muted">—</span>
+                          <span className="text-muted" style={{ fontSize: '0.75rem' }}>no image url found</span>
                         )}
                       </td>
                       {canModifyInventory && (
@@ -462,7 +466,7 @@ export default function Home() {
       <div className="charts-row">
         <div className="card chart-compact">
           <div className="chart-compact-header">
-            <h3>Quantity by Category</h3>
+            <h3>Quantity by Team</h3>
             <span className="text-muted" style={{ fontSize: '0.75rem' }}>{products.reduce((s, p) => s + p.quantity, 0)} total units</span>
           </div>
           <QuantityChart products={products} />
@@ -493,10 +497,10 @@ export default function Home() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <div className="form-group">
-              <label className="form-label">Category *</label>
+              <label className="form-label">Team *</label>
               <select className="form-input" value={formData.category_id}
                 onChange={e => setFormData(p => ({ ...p, category_id: e.target.value }))}>
-                <option value="">Select category</option>
+                <option value="">Select team</option>
                 {localCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
@@ -509,8 +513,8 @@ export default function Home() {
             </div>
           </div>
           <div className="form-group">
-            <label className="form-label">Inventory Box Serial</label>
-            <input className="form-input" placeholder="Enter box serial number"
+            <label className="form-label">Inventory Serial (optional)</label>
+            <input className="form-input" placeholder="Optional serial number"
               value={formData.inventory_box_serial}
               onChange={e => setFormData(p => ({ ...p, inventory_box_serial: e.target.value }))} />
           </div>
@@ -555,15 +559,15 @@ export default function Home() {
               onChange={e => setFormData(p => ({ ...p, part_number: e.target.value }))} />
           </div>
           <div className="form-group">
-            <label className="form-label">Category</label>
+            <label className="form-label">Team</label>
             <select className="form-input" value={formData.category_id}
               onChange={e => setFormData(p => ({ ...p, category_id: e.target.value }))}>
               {localCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           <div className="form-group">
-            <label className="form-label">Inventory Box Serial</label>
-            <input className="form-input" placeholder="Enter box serial number"
+            <label className="form-label">Inventory Serial</label>
+            <input className="form-input" placeholder="Optional serial number"
               value={formData.inventory_box_serial}
               onChange={e => setFormData(p => ({ ...p, inventory_box_serial: e.target.value }))} />
           </div>

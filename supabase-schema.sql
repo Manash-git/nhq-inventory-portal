@@ -990,7 +990,7 @@ BEGIN
   VALUES (p_product_id, p_user_id, v_tx_type, v_old_qty, v_new_qty, v_new_qty - v_old_qty, NULL);
 
   PERFORM log_activity(p_user_id, 'inventory_quantity_change',
-    format('Changed quantity of "%s" from %s to %s (%s%d)',
+    format('Changed quantity of "%s" from %s to %s (%s%s)',
       v_product.product_description, v_old_qty, v_new_qty,
       CASE WHEN p_delta > 0 THEN '+' ELSE '' END, p_delta),
     'product', p_product_id::text,
