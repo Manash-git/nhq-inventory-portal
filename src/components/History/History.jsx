@@ -45,11 +45,13 @@ export default function History() {
 
   // Archived state
   const [archived, setArchived] = useState([])
+  const [archivedAll, setArchivedAll] = useState([])
   const [archiveLoading, setArchiveLoading] = useState(true)
   const [archiveSearch, setArchiveSearch] = useState('')
   const [archiveSort, setArchiveSort] = useState('product_description')
   const [archiveSortDir, setArchiveSortDir] = useState('asc')
-  const [archiveCategory, setArchiveCategory] = useState('')
+  const [archiveCategoryId, setArchiveCategoryId] = useState('')
+  const [archiveCategories, setArchiveCategories] = useState([])
   const [archiveDateFrom, setArchiveDateFrom] = useState('')
   const [archiveDateTo, setArchiveDateTo] = useState('')
   const [archivePage, setArchivePage] = useState(1)
@@ -62,6 +64,7 @@ export default function History() {
     setLogsLoading(true)
     try {
       const { data, error } = await supabase.rpc('get_activity_logs', {
+        p_user_id: user.id,
         p_page: logsPage,
         p_per_page: perPage,
         p_action: logAction,
@@ -77,12 +80,13 @@ export default function History() {
     } finally {
       setLogsLoading(false)
     }
-  }, [logsPage, logAction, logSearch, logDateFrom, logDateTo, addToast])
+  }, [user, logsPage, logAction, logSearch, logDateFrom, logDateTo, addToast])
 
   const fetchLoginHistory = useCallback(async () => {
     setLoginLoading(true)
     try {
       const { data, error } = await supabase.rpc('get_login_history', {
+        p_user_id: user.id,
         p_page: loginPage,
         p_per_page: perPage,
         p_status: loginStatus,
@@ -97,52 +101,66 @@ export default function History() {
     } finally {
       setLoginLoading(false)
     }
-  }, [loginPage, loginStatus, loginDateFrom, loginDateTo, addToast])
+  }, [user, loginPage, loginStatus, loginDateFrom, loginDateTo, addToast])
 
   const fetchTimelineLogs = useCallback(async () => {
     setTimelineLoading(true)
     try {
-      const oneYearAgo = new Date()
-      oneYearAgo.setDate(oneYearAgo.getDate() - 365)
-      const { data, error } = await supabase
-        .from('activity_logs')
-        .select('action, created_at, description, user_name, user_role')
-        .gte('created_at', oneYearAgo.toISOString())
-        .order('created_at', { ascending: false })
-        .limit(2000)
+      const { data, error } = await supabase.rpc('get_timeline_logs', {
+        p_user_id: user.id
+      })
       if (error) throw error
       setTimelineLogs(data || [])
     } catch {}
     setTimelineLoading(false)
-  }, [])
+  }, [user])
 
   const fetchArchived = useCallback(async () => {
     setArchiveLoading(true)
     try {
-      let query = supabase
-        .from('products')
-        .select('*', { count: 'exact' })
-        .eq('is_archived', true)
-        .order(archiveSort, { ascending: archiveSortDir === 'asc' })
-        .range((archivePage - 1) * ARCHIVE_PER_PAGE, archivePage * ARCHIVE_PER_PAGE - 1)
+      const { data, error } = await supabase.rpc('get_products', { p_archived: true })
+      if (error) throw error
+
+      setArchiveCategories([])
+      // Load categories for filter dropdown
+      supabase.rpc('get_categories').then(({ data: cats }) => {
+        if (cats) setArchiveCategories(cats)
+      }).catch(() => {})
+
+      let filtered = data || []
 
       if (archiveSearch) {
-        query = query.or(
-          `product_description.ilike.%${archiveSearch}%,part_number.ilike.%${archiveSearch}%`
+        const q = archiveSearch.toLowerCase()
+        filtered = filtered.filter(p =>
+          p.product_description?.toLowerCase().includes(q) ||
+          p.part_number?.toLowerCase().includes(q)
         )
       }
-      if (archiveCategory) query = query.eq('category', archiveCategory)
 
-      const { data, error, count } = await query
-      if (error) throw error
-      setArchived(data || [])
-      setArchiveTotal(count || 0)
+      if (archiveCategoryId) {
+        filtered = filtered.filter(p => p.category_id === archiveCategoryId)
+      }
+
+      // Sort
+      filtered.sort((a, b) => {
+        const dir = archiveSortDir === 'asc' ? 1 : -1
+        const va = (a[archiveSort] || '').toString().toLowerCase()
+        const vb = (b[archiveSort] || '').toString().toLowerCase()
+        return va.localeCompare(vb) * dir
+      })
+
+      setArchivedAll(filtered)
+      setArchiveTotal(filtered.length)
+
+      // Paginate
+      const start = (archivePage - 1) * ARCHIVE_PER_PAGE
+      setArchived(filtered.slice(start, start + ARCHIVE_PER_PAGE))
     } catch (err) {
       console.error(err)
     } finally {
       setArchiveLoading(false)
     }
-  }, [archivePage, archiveSort, archiveSortDir, archiveSearch, archiveCategory])
+  }, [archivePage, archiveSort, archiveSortDir, archiveSearch, archiveCategoryId])
 
   useEffect(() => {
     if (activeTab === 'activity') fetchLogs()
@@ -396,13 +414,12 @@ export default function History() {
               <input type="text" className="form-input" placeholder="Search archived..." style={{ paddingLeft: 36, width: '100%' }}
                 value={archiveSearch} onChange={e => { setArchiveSearch(e.target.value); setArchivePage(1) }} />
             </div>
-            <select className="form-input" style={{ width: 150 }} value={archiveCategory}
-              onChange={e => { setArchiveCategory(e.target.value); setArchivePage(1) }}>
+            <select className="form-input" style={{ width: 150 }} value={archiveCategoryId}
+              onChange={e => { setArchiveCategoryId(e.target.value); setArchivePage(1) }}>
               <option value="">All Categories</option>
-              <option value="Backup">Backup</option>
-              <option value="System">System</option>
-              <option value="Networking">Networking</option>
-              <option value="Data Center">Data Center</option>
+              {archiveCategories.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
             </select>
             <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>{archiveTotal} items</span>
           </div>

@@ -1,7 +1,28 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { supabase, ROLES } from '../utils/supabase'
+import { supabase } from '../utils/supabase'
 
 const AuthContext = createContext()
+
+const PERMISSIONS = {
+  USERS_CREATE: 'users.create',
+  USERS_DELETE: 'users.delete',
+  USERS_RESET_PASSWORD: 'users.reset_password',
+  USERS_CHANGE_OWN_PASSWORD: 'users.change_own_password',
+  USERS_VIEW: 'users.view',
+  INVENTORY_CREATE: 'inventory.create',
+  INVENTORY_EDIT: 'inventory.edit',
+  INVENTORY_DELETE: 'inventory.delete',
+  INVENTORY_ARCHIVE: 'inventory.archive',
+  INVENTORY_RESTORE: 'inventory.restore',
+  INVENTORY_QUANTITY_INCREASE: 'inventory.quantity.increase',
+  INVENTORY_QUANTITY_DECREASE: 'inventory.quantity.decrease',
+  INVENTORY_VIEW: 'inventory.view',
+  EXPORT_EXCEL: 'export.excel',
+  EXPORT_PDF: 'export.pdf',
+  LOGS_VIEW_ALL: 'logs.view.all',
+  LOGS_VIEW_ADMIN_READONLY: 'logs.view.admin_readonly',
+  LOGS_VIEW_OWN: 'logs.view.own'
+}
 
 function parseUA() {
   const ua = navigator.userAgent
@@ -22,10 +43,13 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [sessionToken, setSessionToken] = useState(null)
+  const [permissions, setPermissions] = useState([])
+  const [categories, setCategories] = useState([])
 
   useEffect(() => {
     const storedUser = localStorage.getItem('nhq-current-user')
     const storedToken = localStorage.getItem('nhq-session-token')
+    const storedPerms = localStorage.getItem('nhq-user-permissions')
     const expiry = parseInt(localStorage.getItem('nhq-session-expiry'), 10)
 
     if (storedUser && storedToken && expiry && expiry > Date.now()) {
@@ -33,6 +57,7 @@ export function AuthProvider({ children }) {
         const parsed = JSON.parse(storedUser)
         setUser(parsed)
         setSessionToken(storedToken)
+        if (storedPerms) setPermissions(JSON.parse(storedPerms))
       } catch {}
     }
     setLoading(false)
@@ -57,14 +82,16 @@ export function AuthProvider({ children }) {
       throw err
     }
 
-    const { user: userData, token, expires_at } = data
+    const { user: userData, token, expires_at, permissions: perms } = data
 
     setUser(userData)
     setSessionToken(token)
+    setPermissions(perms || [])
 
     localStorage.setItem('nhq-current-user', JSON.stringify(userData))
     localStorage.setItem('nhq-session-token', token)
     localStorage.setItem('nhq-session-expiry', new Date(expires_at).getTime().toString())
+    localStorage.setItem('nhq-user-permissions', JSON.stringify(perms || []))
 
     return userData
   }, [])
@@ -76,11 +103,17 @@ export function AuthProvider({ children }) {
 
     setUser(null)
     setSessionToken(null)
+    setPermissions([])
     localStorage.removeItem('nhq-current-user')
     localStorage.removeItem('nhq-session-token')
     localStorage.removeItem('nhq-session-expiry')
     localStorage.removeItem('nhq-session-last-tab-time')
+    localStorage.removeItem('nhq-user-permissions')
   }, [sessionToken])
+
+  const userCan = useCallback((permissionCode) => {
+    return permissions.includes(permissionCode)
+  }, [permissions])
 
   const changePassword = useCallback(async (currentPassword, newPassword) => {
     if (!user) throw new Error('Not authenticated.')
@@ -92,54 +125,26 @@ export function AuthProvider({ children }) {
     })
 
     if (rpcError) throw new Error(rpcError.message)
-
-    await supabase.from('activity_logs').insert({
-      product_id: null,
-      user_id: user.id,
-      user_name: user.username,
-      user_role: user.role,
-      action: 'password_change',
-      description: `${user.username} changed their password`
-    })
-
     return true
   }, [user])
 
   const createUser = useCallback(async (username, password, role) => {
-    if (!user || user.role !== ROLES.SUPER_USER) throw new Error('Unauthorized.')
+    if (!userCan(PERMISSIONS.USERS_CREATE)) throw new Error('Unauthorized.')
 
     const { data: newUser, error: rpcError } = await supabase.rpc('create_user', {
       p_admin_id: user.id,
       p_username: username,
       p_password: password,
-      p_role: role
+      p_role_name: role
     })
 
     if (rpcError) throw new Error(rpcError.message)
-
-    await supabase.from('activity_logs').insert({
-      product_id: null,
-      user_id: user.id,
-      user_name: user.username,
-      user_role: user.role,
-      action: 'user_create',
-      description: `Created user "${username}" with role "${role}"`
-    })
-
     return newUser
-  }, [user])
+  }, [user, userCan])
 
   const deleteUser = useCallback(async (userId) => {
-    if (!user || user.role !== ROLES.SUPER_USER) throw new Error('Unauthorized.')
+    if (!userCan(PERMISSIONS.USERS_DELETE)) throw new Error('Unauthorized.')
     if (userId === user.id) throw new Error('Cannot delete your own account.')
-
-    const { data: targetUser } = await supabase
-      .from('users')
-      .select('username')
-      .eq('id', userId)
-      .single()
-
-    if (!targetUser) throw new Error('User not found.')
 
     const { error: rpcError } = await supabase.rpc('deactivate_user', {
       p_admin_id: user.id,
@@ -147,29 +152,11 @@ export function AuthProvider({ children }) {
     })
 
     if (rpcError) throw new Error(rpcError.message)
-
-    await supabase.from('activity_logs').insert({
-      product_id: null,
-      user_id: user.id,
-      user_name: user.username,
-      user_role: user.role,
-      action: 'user_delete',
-      description: `Deleted user "${targetUser.username}"`
-    })
-
     return true
-  }, [user])
+  }, [user, userCan])
 
   const resetUserPassword = useCallback(async (userId, newPassword) => {
-    if (!user || user.role !== ROLES.SUPER_USER) throw new Error('Unauthorized.')
-
-    const { data: targetUser } = await supabase
-      .from('users')
-      .select('username')
-      .eq('id', userId)
-      .single()
-
-    if (!targetUser) throw new Error('User not found.')
+    if (!userCan(PERMISSIONS.USERS_RESET_PASSWORD)) throw new Error('Unauthorized.')
 
     const { error: rpcError } = await supabase.rpc('reset_user_password', {
       p_admin_id: user.id,
@@ -178,21 +165,11 @@ export function AuthProvider({ children }) {
     })
 
     if (rpcError) throw new Error(rpcError.message)
-
-    await supabase.from('activity_logs').insert({
-      product_id: null,
-      user_id: user.id,
-      user_name: user.username,
-      user_role: user.role,
-      action: 'password_reset',
-      description: `Reset password for user "${targetUser.username}"`
-    })
-
     return true
-  }, [user])
+  }, [user, userCan])
 
   const getUsers = useCallback(async () => {
-    if (!user || user.role !== ROLES.SUPER_USER) throw new Error('Unauthorized.')
+    if (!userCan(PERMISSIONS.USERS_VIEW)) throw new Error('Unauthorized.')
 
     const { data, error: rpcError } = await supabase.rpc('get_all_users', {
       p_admin_id: user.id
@@ -200,20 +177,29 @@ export function AuthProvider({ children }) {
 
     if (rpcError) throw new Error(rpcError.message)
     return data || []
-  }, [user])
+  }, [user, userCan])
+
+  const fetchCategories = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_categories')
+      if (error) throw error
+      setCategories(data || [])
+      return data || []
+    } catch (err) {
+      console.error('Failed to fetch categories:', err)
+      return []
+    }
+  }, [])
 
   const validateSession = useCallback(async () => {
     if (!sessionToken) return false
-
     const { data, error: rpcError } = await supabase.rpc('validate_session', {
       p_token: sessionToken
     })
-
     if (rpcError || !data?.valid) {
       if (data?.expired) logout()
       return false
     }
-
     return true
   }, [sessionToken, logout])
 
@@ -221,22 +207,26 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={{
       user,
       loading,
+      permissions,
+      categories,
       login,
       logout,
+      userCan,
       changePassword,
       createUser,
       deleteUser,
       resetUserPassword,
       getUsers,
+      fetchCategories,
       validateSession,
-      isSuperUser: user?.role === ROLES.SUPER_USER,
-      isAdmin: user?.role === ROLES.ADMIN,
-      isReadOnly: user?.role === ROLES.READ_ONLY,
-      canManageUsers: user?.role === ROLES.SUPER_USER,
-      canModifyInventory: user?.role === ROLES.SUPER_USER || user?.role === ROLES.ADMIN,
-      canExport: user?.role === ROLES.SUPER_USER || user?.role === ROLES.ADMIN,
-      canViewAllLogs: user?.role === ROLES.SUPER_USER,
-      canViewAdminLogs: user?.role === ROLES.ADMIN
+      isSuperUser: user?.role === 'super_user',
+      isAdmin: user?.role === 'admin',
+      isReadOnly: user?.role === 'read_only',
+      canManageUsers: userCan(PERMISSIONS.USERS_CREATE) || userCan(PERMISSIONS.USERS_DELETE),
+      canModifyInventory: userCan(PERMISSIONS.INVENTORY_CREATE),
+      canExport: userCan(PERMISSIONS.EXPORT_EXCEL),
+      canViewAllLogs: userCan(PERMISSIONS.LOGS_VIEW_ALL),
+      canViewAdminLogs: userCan(PERMISSIONS.LOGS_VIEW_ADMIN_READONLY)
     }}>
       {children}
     </AuthContext.Provider>
@@ -248,3 +238,5 @@ export function useAuth() {
   if (!ctx) throw new Error('useAuth must be used within AuthProvider')
   return ctx
 }
+
+export { PERMISSIONS }

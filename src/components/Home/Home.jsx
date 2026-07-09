@@ -9,15 +9,14 @@ import PartQuantityChart from './PartQuantityChart'
 import * as XLSX from 'xlsx'
 import './Home.css'
 
-const CATEGORIES = ['Backup', 'System', 'Networking', 'Data Center']
-
 const QUANTITY_OPTIONS = [1, 2, 3, 4, 5, 10, 15, 20, 25, 30, 40, 50, 75, 100]
 
 export default function Home() {
-  const { user, canModifyInventory, canExport, isReadOnly } = useAuth()
+  const { user, canModifyInventory, canExport, isReadOnly, fetchCategories, categories } = useAuth()
   const { addToast } = useNotification()
 
   const [products, setProducts] = useState([])
+  const [localCategories, setLocalCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
@@ -29,7 +28,7 @@ export default function Home() {
   const [formData, setFormData] = useState({
     product_description: '',
     part_number: '',
-    category: '',
+    category_id: '',
     quantity: 1,
     image_url: '',
     inventory_box_serial: ''
@@ -38,16 +37,37 @@ export default function Home() {
   const [sortDir, setSortDir] = useState('desc')
   const channelRef = useRef(null)
 
+  // Load categories (from context or fetch)
+  useEffect(() => {
+    if (categories.length > 0) {
+      setLocalCategories(categories)
+    } else {
+      fetchCategories().then(cats => {
+        if (cats.length > 0) setLocalCategories(cats)
+      })
+    }
+  }, [categories, fetchCategories])
+
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true)
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('is_archived', false)
-        .order(sortBy, { ascending: sortDir === 'asc' })
+      const { data, error } = await supabase.rpc('get_products', { p_archived: false })
       if (error) throw error
-      setProducts(data || [])
+
+      const sorted = [...(data || [])].sort((a, b) => {
+        const dir = sortDir === 'asc' ? 1 : -1
+        if (sortBy === 'category') {
+          return (a.category || '').localeCompare(b.category || '') * dir
+        }
+        if (sortBy === 'quantity') {
+          return (a.quantity - b.quantity) * dir
+        }
+        if (sortBy === 'created_at' || sortBy === 'updated_at') {
+          return (new Date(a[sortBy] || 0) - new Date(b[sortBy] || 0)) * dir
+        }
+        return ((a[sortBy] || '').toString().localeCompare((b[sortBy] || '').toString())) * dir
+      })
+      setProducts(sorted)
     } catch (err) {
       addToast(err.message, 'error')
     } finally {
@@ -58,30 +78,19 @@ export default function Home() {
   useEffect(() => {
     fetchProducts()
 
-    // Set up realtime subscription for live updates
     const channel = supabase
       .channel('products-changes')
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'products',
-          filter: 'is_archived=eq.false'
-        },
-        (payload) => {
-          console.log('Realtime product change:', payload)
-          fetchProducts()
-        }
+        { event: '*', schema: 'public', table: 'products', filter: 'is_archived=eq.false' },
+        () => fetchProducts()
       )
       .subscribe()
 
     channelRef.current = channel
 
     return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current)
-      }
+      if (channelRef.current) supabase.removeChannel(channelRef.current)
     }
   }, [fetchProducts])
 
@@ -104,49 +113,27 @@ export default function Home() {
     )
   })
 
-  const logActivity = async (productId, action, description, changes) => {
-    try {
-      await supabase.from('activity_logs').insert({
-        product_id: productId,
-        user_id: user.id,
-        user_name: user.username,
-        user_role: user.role,
-        action: action,
-        description: description,
-        changes: changes || null
-      })
-    } catch (err) {
-      console.error('Failed to log activity:', err)
-    }
-  }
-
   const resetForm = () => {
-    setFormData({ product_description: '', part_number: '', category: '', quantity: 1, image_url: '', inventory_box_serial: '' })
+    setFormData({ product_description: '', part_number: '', category_id: '', quantity: 1, image_url: '', inventory_box_serial: '' })
   }
 
   const handleAdd = async (e) => {
     e.preventDefault()
-    if (!formData.product_description || !formData.part_number || !formData.category) {
+    if (!formData.product_description || !formData.part_number || !formData.category_id) {
       addToast('Please fill Hardware Description, Part Number and Category.', 'error')
       return
     }
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .insert([{
-          product_description: formData.product_description,
-          part_number: formData.part_number,
-          category: formData.category,
-          quantity: formData.quantity,
-          image_url: formData.image_url || null,
-          inventory_box_serial: formData.inventory_box_serial || null,
-          created_by: user.id
-        }])
-        .select()
-        .single()
+      const { data, error } = await supabase.rpc('add_product', {
+        p_user_id: user.id,
+        p_product_description: formData.product_description,
+        p_part_number: formData.part_number,
+        p_category_id: formData.category_id,
+        p_quantity: formData.quantity,
+        p_image_url: formData.image_url || null,
+        p_inventory_box_serial: formData.inventory_box_serial || null
+      })
       if (error) throw error
-
-      await logActivity(data.id, 'add', `Added "${data.product_description}" (${data.part_number})`)
 
       addToast('Hardware added successfully!', 'success')
       setShowAddModal(false)
@@ -161,30 +148,16 @@ export default function Home() {
     e.preventDefault()
     if (!selectedProduct) return
     try {
-      const { error } = await supabase
-        .from('products')
-        .update({
-          product_description: formData.product_description,
-          part_number: formData.part_number,
-          category: formData.category,
-          image_url: formData.image_url || null,
-          inventory_box_serial: formData.inventory_box_serial || null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', selectedProduct.id)
+      const { data, error } = await supabase.rpc('update_product', {
+        p_user_id: user.id,
+        p_product_id: selectedProduct.id,
+        p_product_description: formData.product_description,
+        p_part_number: formData.part_number,
+        p_category_id: formData.category_id,
+        p_image_url: formData.image_url || null,
+        p_inventory_box_serial: formData.inventory_box_serial || null
+      })
       if (error) throw error
-
-      const changes = {}
-      if (selectedProduct.product_description !== formData.product_description)
-        changes.product_description = { from: selectedProduct.product_description, to: formData.product_description }
-      if (selectedProduct.part_number !== formData.part_number)
-        changes.part_number = { from: selectedProduct.part_number, to: formData.part_number }
-      if (selectedProduct.image_url !== formData.image_url)
-        changes.image_url = { from: selectedProduct.image_url, to: formData.image_url }
-      if (selectedProduct.inventory_box_serial !== formData.inventory_box_serial)
-        changes.inventory_box_serial = { from: selectedProduct.inventory_box_serial, to: formData.inventory_box_serial }
-
-      await logActivity(selectedProduct.id, 'edit', `Edited "${formData.product_description}"`, changes)
 
       addToast('Product updated!', 'success')
       setShowEditModal(false)
@@ -197,12 +170,10 @@ export default function Home() {
   const handleDelete = async () => {
     if (!selectedProduct || deleteConfirm !== 'Delete') return
     try {
-      await logActivity(selectedProduct.id, 'delete', `Deleted "${selectedProduct.product_description}"`)
-
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', selectedProduct.id)
+      const { error } = await supabase.rpc('delete_product', {
+        p_user_id: user.id,
+        p_product_id: selectedProduct.id
+      })
       if (error) throw error
 
       addToast('Product deleted.', 'info')
@@ -217,17 +188,11 @@ export default function Home() {
   const handleArchive = async () => {
     if (!selectedProduct) return
     try {
-      const { error } = await supabase
-        .from('products')
-        .update({
-          is_archived: true,
-          archived_at: new Date().toISOString(),
-          archived_by: user.id
-        })
-        .eq('id', selectedProduct.id)
+      const { error } = await supabase.rpc('archive_product', {
+        p_user_id: user.id,
+        p_product_id: selectedProduct.id
+      })
       if (error) throw error
-
-      await logActivity(selectedProduct.id, 'archive', `Archived "${selectedProduct.product_description}"`)
 
       addToast('Product archived.', 'success')
       setShowArchiveModal(false)
@@ -250,17 +215,16 @@ export default function Home() {
     ))
 
     try {
-      const { error } = await supabase
-        .from('products')
-        .update({ quantity: newQty, updated_at: new Date().toISOString() })
-        .eq('id', product.id)
+      const { data, error } = await supabase.rpc('change_quantity', {
+        p_user_id: user.id,
+        p_product_id: product.id,
+        p_delta: delta
+      })
       if (error) throw error
 
-      await logActivity(product.id, 'quantity_change',
-        `Changed quantity of "${product.product_description}" from ${product.quantity} to ${newQty} (${delta > 0 ? '+' : ''}${delta})`
-      )
-
-      addToast(`Quantity ${delta > 0 ? 'increased' : 'decreased'} to ${newQty}`, 'success')
+      if (data?.changed) {
+        addToast(`Quantity ${delta > 0 ? 'increased' : 'decreased'} to ${data.quantity}`, 'success')
+      }
     } catch (err) {
       setProducts(prev => prev.map(p =>
         p.id === product.id ? { ...p, quantity: product.quantity } : p
@@ -271,11 +235,7 @@ export default function Home() {
 
   const handleExport = async () => {
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('is_archived', false)
-        .order('created_at', { ascending: true })
+      const { data, error } = await supabase.rpc('get_products', { p_archived: false })
       if (error) throw error
 
       const wsData = (data || []).map(p => ({
@@ -284,7 +244,7 @@ export default function Home() {
         'Category': p.category,
         'Quantity': p.quantity,
         'Date Added': formatDate(p.created_at),
-        'Inventory Box Serial': p.inventory_box_serial || ''
+        'Inventory Box Serial': p.inventory_box_serial || '—'
       }))
 
       const ws = XLSX.utils.json_to_sheet(wsData)
@@ -293,7 +253,14 @@ export default function Home() {
       const date = new Date().toISOString().split('T')[0]
       XLSX.writeFile(wb, `Inventory-${date}.xls`)
 
-      await logActivity(null, 'export', `${user.username} exported inventory`)
+      // Log export via RPC
+      await supabase.rpc('log_activity', {
+        p_user_id: user.id,
+        p_action: 'export',
+        p_description: `${user.username} exported inventory`,
+        p_target_type: 'export',
+        p_target_id: date
+      }).catch(() => {})
 
       addToast('Exported successfully!', 'success')
     } catch (err) {
@@ -306,7 +273,7 @@ export default function Home() {
     setFormData({
       product_description: product.product_description,
       part_number: product.part_number,
-      category: product.category,
+      category_id: product.category_id || '',
       quantity: product.quantity,
       image_url: product.image_url || '',
       inventory_box_serial: product.inventory_box_serial || ''
@@ -527,10 +494,10 @@ export default function Home() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <div className="form-group">
               <label className="form-label">Category *</label>
-              <select className="form-input" value={formData.category}
-                onChange={e => setFormData(p => ({ ...p, category: e.target.value }))}>
+              <select className="form-input" value={formData.category_id}
+                onChange={e => setFormData(p => ({ ...p, category_id: e.target.value }))}>
                 <option value="">Select category</option>
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                {localCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
             <div className="form-group">
@@ -589,9 +556,9 @@ export default function Home() {
           </div>
           <div className="form-group">
             <label className="form-label">Category</label>
-            <select className="form-input" value={formData.category}
-              onChange={e => setFormData(p => ({ ...p, category: e.target.value }))}>
-              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            <select className="form-input" value={formData.category_id}
+              onChange={e => setFormData(p => ({ ...p, category_id: e.target.value }))}>
+              {localCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           <div className="form-group">
