@@ -1,57 +1,32 @@
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
-
-const COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)']
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 export default function QuantityChart({ products }) {
-  if (!products || products.length === 0) {
-    return (
-      <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
-        No data to display
-      </div>
-    )
-  }
-
-  const categoryMap = {}
-  products.forEach(p => {
-    if (!p.category) return
-    categoryMap[p.category] = (categoryMap[p.category] || 0) + p.quantity
-  })
-
-  const data = Object.entries(categoryMap)
-    .map(([name, quantity]) => ({ name, quantity }))
-    .sort((a, b) => b.quantity - a.quantity)
-    .slice(0, 8)
+  const data = products.reduce((acc, p) => {
+    const existing = acc.find(item => item.category === p.category)
+    if (existing) {
+      existing.quantity += p.quantity
+    } else {
+      acc.push({ category: p.category, quantity: p.quantity })
+    }
+    return acc
+  }, [])
 
   return (
-    <ResponsiveContainer width="100%" height={160}>
-      <BarChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 4 }}>
-        <XAxis
-          dataKey="name"
-          tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
-          axisLine={{ stroke: 'var(--border-color)' }}
-          tickLine={false}
-        />
-        <YAxis
-          tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
-          axisLine={false}
-          tickLine={false}
-          allowDecimals={false}
-        />
+    <ResponsiveContainer width="100%" height={250}>
+      <BarChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
+        <XAxis dataKey="category" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={{ stroke: 'var(--border-light)' }} />
+        <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={{ stroke: 'var(--border-light)' }} />
         <Tooltip
           contentStyle={{
             background: 'var(--bg-card)',
             border: '1px solid var(--border-color)',
             borderRadius: 8,
-            fontSize: '0.8125rem',
-            boxShadow: 'var(--shadow-md)'
+            color: 'var(--text-primary)',
+            fontSize: 13
           }}
-          labelStyle={{ color: 'var(--text-primary)', fontWeight: 600, marginBottom: 4 }}
         />
-        <Bar dataKey="quantity" radius={[6, 6, 0, 0]} maxBarSize={48}>
-          {data.map((_, index) => (
-            <Cell key={index} fill={COLORS[index % COLORS.length]} />
-          ))}
-        </Bar>
+        <Bar dataKey="quantity" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )

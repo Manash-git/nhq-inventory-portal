@@ -3,13 +3,9 @@ import { useState, useMemo } from 'react'
 const DAY_NAMES = ['', 'Mon', '', 'Wed', '', 'Fri', '']
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-const CELL_SIZE = 12
-const CELL_GAP = 3
-const COL_WIDTH = CELL_SIZE + CELL_GAP
-
 function getLevel(count) {
   if (count === 0) return 0
-  if (count <= 1) return 1
+  if (count === 1) return 1
   if (count <= 3) return 2
   if (count <= 6) return 3
   return 4
@@ -80,6 +76,10 @@ export default function ContributionGraph({ logs }) {
     return { weeks, monthPositions, logsByDate, totalActions: logs?.length || 0 }
   }, [logs])
 
+  const CELL_SIZE = 13
+  const CELL_GAP = 3
+  const COL_WIDTH = CELL_SIZE + CELL_GAP
+
   return (
     <div className="card contribution-card">
       <div className="contribution-header">
@@ -88,36 +88,62 @@ export default function ContributionGraph({ logs }) {
       </div>
 
       <div className="contribution-graph">
-        <div className="contribution-months">
-          <div className="months-row">
-            {monthPositions.map((p, i) => (
-              <span key={i} style={{ position: 'absolute', left: p.idx * COL_WIDTH + 30, top: -4, fontSize: '0.65rem', color: 'var(--text-muted)' }}>
-                {p.name}
+        {/* Month labels */}
+        <div className="contribution-months" style={{ marginLeft: 28, marginBottom: 4, position: 'relative', height: 16 }}>
+          {monthPositions.map((p, i) => (
+            <span
+              key={i}
+              style={{
+                position: 'absolute',
+                left: p.idx * COL_WIDTH,
+                fontSize: '0.7rem',
+                color: 'var(--text-muted)',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {p.name}
+            </span>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', gap: 0 }}>
+          {/* Day labels */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: CELL_GAP, paddingRight: 4, width: 28 }}>
+            {DAY_NAMES.map((d, i) => (
+              <span key={i} style={{
+                fontSize: '0.65rem',
+                color: 'var(--text-muted)',
+                height: CELL_SIZE,
+                display: 'flex',
+                alignItems: 'center',
+                lineHeight: 1
+              }}>
+                {d}
               </span>
             ))}
           </div>
-        </div>
 
-        <div className="contribution-weeks">
-          <div className="day-labels">
-            {DAY_NAMES.map((d, i) => (
-              <span key={i} className="day-label">{d}</span>
-            ))}
-          </div>
-          <div className="weeks-container">
+          {/* Contribution grid */}
+          <div style={{ display: 'flex', gap: CELL_GAP, overflowX: 'auto', paddingBottom: 4 }}>
             {weeks.length === 0 ? (
               <div style={{ padding: 20, color: 'var(--text-muted)', fontSize: '0.8125rem' }}>No data</div>
             ) : (
               weeks.map((week, wi) => (
-                <div key={wi} className="week-column">
+                <div key={wi} style={{ display: 'flex', flexDirection: 'column', gap: CELL_GAP }}>
                   {week.map((day, di) => {
-                    if (!day) return <div key={di} className="contribution-cell empty" />
+                    if (!day) return <div key={di} style={{ width: CELL_SIZE, height: CELL_SIZE }} />
                     const level = getLevel(day.count)
                     return (
                       <div
                         key={di}
-                        className={`contribution-cell${day.count > 0 ? ' has-activity' : ''}`}
-                        style={{ background: `var(--contribution-${level})` }}
+                        style={{
+                          width: CELL_SIZE,
+                          height: CELL_SIZE,
+                          borderRadius: 3,
+                          backgroundColor: `var(--contribution-${level})`,
+                          cursor: 'pointer',
+                          transition: 'opacity 0.15s'
+                        }}
                         onMouseEnter={(e) => {
                           const rect = e.target.getBoundingClientRect()
                           setTooltip({
@@ -138,22 +164,32 @@ export default function ContributionGraph({ logs }) {
           </div>
         </div>
 
-        <div className="contribution-legend">
-          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Less</span>
+        {/* Legend */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end', marginTop: 8 }}>
+          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginRight: 4 }}>Less</span>
           {[0, 1, 2, 3, 4].map(l => (
-            <div key={l} style={{ width: 12, height: 12, borderRadius: 2, background: `var(--contribution-${l})` }} />
+            <div
+              key={l}
+              style={{
+                width: CELL_SIZE,
+                height: CELL_SIZE,
+                borderRadius: 3,
+                backgroundColor: `var(--contribution-${l})`
+              }}
+            />
           ))}
-          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>More</span>
+          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginLeft: 4 }}>More</span>
         </div>
       </div>
 
+      {/* Tooltip */}
       {tooltip && (
         <div
           className="contribution-tooltip"
           style={{
             position: 'fixed',
-            left: tooltip.x,
-            top: tooltip.y - 40,
+            left: Math.min(tooltip.x, window.innerWidth - 300),
+            top: Math.max(tooltip.y - 40, 10),
             zIndex: 10000,
             pointerEvents: 'none'
           }}
@@ -166,7 +202,7 @@ export default function ContributionGraph({ logs }) {
             <div className="tooltip-logs">
               {tooltip.logs.slice(0, 8).map((log, i) => (
                 <div key={log.id || i} className="tooltip-log-item">
-                  <span className={`tooltip-action-badge action-${log.action}`}>{log.action}</span>
+                  <span className={`tooltip-action-badge action-${log.action}`}>{log.action.replace('_', ' ')}</span>
                   <span className="tooltip-log-desc">
                     {log.description?.length > 60
                       ? log.description.slice(0, 60) + '...'

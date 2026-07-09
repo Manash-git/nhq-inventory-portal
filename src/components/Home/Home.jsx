@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../../utils/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import { useNotification } from '../../contexts/NotificationContext'
@@ -17,7 +17,7 @@ const CATEGORIES = [
 const QUANTITY_OPTIONS = [1, 2, 3, 4, 5, 10, 15, 20, 25, 30, 40, 50, 75, 100]
 
 export default function Home() {
-  const { user, canEdit, canExport, isReadOnly } = useAuth()
+  const { user, canModifyInventory, canExport, isReadOnly } = useAuth()
   const { addToast } = useNotification()
 
   const [products, setProducts] = useState([])
@@ -36,8 +36,9 @@ export default function Home() {
     quantity: 1,
     image_url: ''
   })
-  const [sortBy, setSortBy] = useState('serial')
-  const [sortDir, setSortDir] = useState('asc')
+  const [sortBy, setSortBy] = useState('created_at')
+  const [sortDir, setSortDir] = useState('desc')
+  const channelRef = useRef(null)
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -58,6 +59,32 @@ export default function Home() {
 
   useEffect(() => {
     fetchProducts()
+
+    // Set up realtime subscription for live updates
+    const channel = supabase
+      .channel('products-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'products',
+          filter: 'is_archived=eq.false'
+        },
+        (payload) => {
+          console.log('Realtime product change:', payload)
+          fetchProducts()
+        }
+      )
+      .subscribe()
+
+    channelRef.current = channel
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current)
+      }
+    }
   }, [fetchProducts])
 
   const handleSort = (col) => {
@@ -79,6 +106,21 @@ export default function Home() {
     )
   })
 
+  const logActivity = async (productId, action, description) => {
+    try {
+      await supabase.from('activity_logs').insert({
+        product_id: productId,
+        user_id: user.id,
+        user_name: user.display_name,
+        user_role: user.role,
+        action: action,
+        description: description
+      })
+    } catch (err) {
+      console.error('Failed to log activity:', err)
+    }
+  }
+
   const resetForm = () => {
     setFormData({ product_description: '', part_number: '', category: '', quantity: 1, image_url: '' })
   }
@@ -97,19 +139,14 @@ export default function Home() {
           part_number: formData.part_number,
           category: formData.category,
           quantity: formData.quantity,
-          image_url: formData.image_url || null
+          image_url: formData.image_url || null,
+          created_by: user.id
         }])
         .select()
         .single()
       if (error) throw error
 
-      await supabase.from('activity_logs').insert([{
-        product_id: data.id,
-        action: 'add',
-        description: `Added "${data.product_description}" (${data.part_number})`,
-        user_id: user?.id,
-        user_name: user?.name
-      }])
+      await logActivity(data.id, 'add', `Added "${data.product_description}" (${data.part_number})`)
 
       addToast('Product added successfully!', 'success')
       setShowAddModal(false)
@@ -130,18 +167,13 @@ export default function Home() {
           product_description: formData.product_description,
           part_number: formData.part_number,
           category: formData.category,
-          image_url: formData.image_url || null
+          image_url: formData.image_url || null,
+          updated_at: new Date().toISOString()
         })
         .eq('id', selectedProduct.id)
       if (error) throw error
 
-      await supabase.from('activity_logs').insert([{
-        product_id: selectedProduct.id,
-        action: 'edit',
-        description: `Edited "${formData.product_description}"`,
-        user_id: user?.id,
-        user_name: user?.name
-      }])
+      await logActivity(selectedProduct.id, 'edit', `Edited "${formData.product_description}"`)
 
       addToast('Product updated!', 'success')
       setShowEditModal(false)
@@ -154,14 +186,7 @@ export default function Home() {
   const handleDelete = async () => {
     if (!selectedProduct || deleteConfirm !== 'Delete') return
     try {
-      const { error: logError } = await supabase.from('activity_logs').insert([{
-        product_id: selectedProduct.id,
-        action: 'delete',
-        description: `Deleted "${selectedProduct.product_description}"`,
-        user_id: user?.id,
-        user_name: user?.name
-      }])
-      if (logError) throw logError
+      await logActivity(selectedProduct.id, 'delete', `Deleted "${selectedProduct.product_description}"`)
 
       const { error } = await supabase
         .from('products')
@@ -183,17 +208,15 @@ export default function Home() {
     try {
       const { error } = await supabase
         .from('products')
-        .update({ is_archived: true, archived_at: new Date().toISOString() })
+        .update({
+          is_archived: true,
+          archived_at: new Date().toISOString(),
+          archived_by: user.id
+        })
         .eq('id', selectedProduct.id)
       if (error) throw error
 
-      await supabase.from('activity_logs').insert([{
-        product_id: selectedProduct.id,
-        action: 'archived',
-        description: `Archived "${selectedProduct.product_description}"`,
-        user_id: user?.id,
-        user_name: user?.name
-      }])
+      await logActivity(selectedProduct.id, 'archive', `Archived "${selectedProduct.product_description}"`)
 
       addToast('Product archived.', 'success')
       setShowArchiveModal(false)
@@ -218,17 +241,13 @@ export default function Home() {
     try {
       const { error } = await supabase
         .from('products')
-        .update({ quantity: newQty })
+        .update({ quantity: newQty, updated_at: new Date().toISOString() })
         .eq('id', product.id)
       if (error) throw error
 
-      await supabase.from('activity_logs').insert([{
-        product_id: product.id,
-        action: 'edit',
-        description: `Changed quantity of "${product.product_description}" from ${product.quantity} to ${newQty} (${delta > 0 ? '+' : ''}${delta})`,
-        user_id: user?.id,
-        user_name: user?.name
-      }])
+      await logActivity(product.id, 'quantity_change',
+        `Changed quantity of "${product.product_description}" from ${product.quantity} to ${newQty} (${delta > 0 ? '+' : ''}${delta})`
+      )
 
       addToast(`Quantity ${delta > 0 ? 'increased' : 'decreased'} to ${newQty}`, 'success')
     } catch (err) {
@@ -245,11 +264,10 @@ export default function Home() {
         .from('products')
         .select('*')
         .eq('is_archived', false)
-        .order('serial', { ascending: true })
+        .order('created_at', { ascending: true })
       if (error) throw error
 
       const wsData = (data || []).map(p => ({
-        'Serial': p.serial,
         'Product Description': p.product_description,
         'Part Number': p.part_number,
         'Category': p.category,
@@ -262,6 +280,9 @@ export default function Home() {
       XLSX.utils.book_append_sheet(wb, ws, 'Inventory')
       const date = new Date().toISOString().split('T')[0]
       XLSX.writeFile(wb, `Inventory-${date}.xls`)
+
+      await logActivity(null, 'export', `${user.display_name} exported inventory`)
+
       addToast('Exported successfully!', 'success')
     } catch (err) {
       addToast(err.message, 'error')
@@ -292,17 +313,13 @@ export default function Home() {
   }
 
   const SortIcon = ({ col }) => {
-    if (sortBy !== col) return <span style={{ opacity: 0.3 }}>↕</span>
+    if (sortBy !== col) return <span className="sort-icon-inactive">↕</span>
     return <span>{sortDir === 'asc' ? '↑' : '↓'}</span>
   }
 
   const isValidUrl = (url) => {
-    try {
-      new URL(url)
-      return true
-    } catch {
-      return false
-    }
+    try { new URL(url); return true }
+    catch { return false }
   }
 
   return (
@@ -313,14 +330,19 @@ export default function Home() {
           <p className="page-subtitle">{filtered.length} product(s) in stock</p>
         </div>
         <div className="home-actions">
-          <input
-            type="text"
-            className="form-input"
-            placeholder="Search inventory..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ width: 240, paddingLeft: 36 }}
-          />
+          <div className="search-input-wrapper">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Search inventory..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ width: 240, paddingLeft: 36 }}
+            />
+          </div>
           {canExport && (
             <button className="btn btn-secondary" onClick={handleExport}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -329,7 +351,7 @@ export default function Home() {
               Export
             </button>
           )}
-          {canEdit && (
+          {canModifyInventory && (
             <button className="btn btn-primary" onClick={() => { resetForm(); setShowAddModal(true) }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -344,7 +366,7 @@ export default function Home() {
         <div className="card home-table-card">
           {loading ? (
             <div style={{ padding: 40, textAlign: 'center' }}>
-              <div style={{ width: 32, height: 32, border: '3px solid var(--border-color)', borderTopColor: 'var(--accent-primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
+              <div className="spinner" />
             </div>
           ) : filtered.length === 0 ? (
             <div className="empty-state">
@@ -375,7 +397,7 @@ export default function Home() {
                     <th onClick={() => handleSort('created_at')} style={{ cursor: 'pointer' }}>
                       Date Added <SortIcon col="created_at" />
                     </th>
-                    <th style={{ width: 180 }}>Actions</th>
+                    {canModifyInventory && <th style={{ width: 200 }}>Actions</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -383,11 +405,13 @@ export default function Home() {
                     <tr key={product.id}>
                       <td className="text-muted">{idx + 1}</td>
                       <td className="cell-single-line" style={{ fontWeight: 500, maxWidth: 400 }}>{product.product_description}</td>
-                      <td className="cell-single-line" style={{ maxWidth: 200 }}><code style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>{product.part_number}</code></td>
+                      <td className="cell-single-line" style={{ maxWidth: 200 }}>
+                        <code style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>{product.part_number}</code>
+                      </td>
                       <td><span className="badge badge-primary">{product.category}</span></td>
                       <td>
                         <div className="qty-control">
-                          {canEdit && (
+                          {canModifyInventory && (
                             <button className="qty-btn" onClick={() => handleQuantityChange(product, -1)} disabled={product.quantity <= 0}>
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
                             </button>
@@ -395,7 +419,7 @@ export default function Home() {
                           <span className={`qty-value ${product.quantity <= 1 ? 'qty-low' : ''}`}>
                             {product.quantity}
                           </span>
-                          {canEdit && (
+                          {canModifyInventory && (
                             <button className="qty-btn" onClick={() => handleQuantityChange(product, 1)}>
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                             </button>
@@ -403,9 +427,9 @@ export default function Home() {
                         </div>
                       </td>
                       <td style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>{formatDate(product.created_at)}</td>
-                      <td>
-                        <div className="actions-cell" style={{ display: 'flex', gap: 4, alignItems: 'center', minHeight: 36 }}>
-                          <span style={{ width: 36, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {canModifyInventory && (
+                        <td>
+                          <div className="actions-cell">
                             {product.image_url && (
                               <a href={product.image_url} target="_blank" rel="noopener noreferrer" className="btn-icon" title="View image" style={{ color: 'var(--accent-primary)' }}>
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -413,37 +437,27 @@ export default function Home() {
                                 </svg>
                               </a>
                             )}
-                          </span>
-                          <span style={{ width: 36, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                            {canEdit && (
-                              <button className="btn-icon" onClick={() => openEdit(product)} title="Edit">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                </svg>
-                              </button>
-                            )}
-                          </span>
-                          <span style={{ width: 36, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                            {canEdit && product.quantity <= 1 && (
+                            <button className="btn-icon" onClick={() => openEdit(product)} title="Edit">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                              </svg>
+                            </button>
+                            {product.quantity <= 1 && (
                               <button className="btn-icon" onClick={() => openArchive(product)} title="Archive" style={{ color: 'var(--warning)' }}>
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                   <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>
                                 </svg>
                               </button>
                             )}
-                          </span>
-                          <span style={{ width: 36, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                            {canEdit && (
-                              <button className="btn-icon" onClick={() => openDelete(product)} title="Delete" style={{ color: 'var(--danger)' }}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                </svg>
-                              </button>
-                            )}
-                          </span>
-                        </div>
-                      </td>
+                            <button className="btn-icon" onClick={() => openDelete(product)} title="Delete" style={{ color: 'var(--danger)' }}>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                              </svg>
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -451,9 +465,9 @@ export default function Home() {
             </div>
           )}
         </div>
-
       </div>
 
+      {/* Charts */}
       <div className="charts-row">
         <div className="card chart-compact">
           <div className="chart-compact-header">
@@ -471,6 +485,7 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Add Modal */}
       <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Add New Product">
         <form onSubmit={handleAdd}>
           <div className="form-group">
@@ -513,12 +528,9 @@ export default function Home() {
             />
             {formData.image_url && isValidUrl(formData.image_url) && (
               <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <img
-                  src={formData.image_url}
-                  alt="Preview"
+                <img src={formData.image_url} alt="Preview"
                   style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border-light)' }}
-                  onError={(e) => { e.target.style.display = 'none' }}
-                />
+                  onError={(e) => { e.target.style.display = 'none' }} />
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Preview</span>
               </div>
             )}
@@ -530,6 +542,7 @@ export default function Home() {
         </form>
       </Modal>
 
+      {/* Edit Modal */}
       <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Edit Product">
         <form onSubmit={handleEdit}>
           <div className="form-group">
@@ -554,22 +567,14 @@ export default function Home() {
           <div className="form-group">
             <label className="form-label">Image URL</label>
             <div style={{ display: 'flex', gap: 8 }}>
-              <input
-                className="form-input"
-                type="url"
-                placeholder="https://example.com/image.jpg"
+              <input className="form-input" type="url" placeholder="https://example.com/image.jpg"
                 value={formData.image_url}
                 onChange={e => setFormData(p => ({ ...p, image_url: e.target.value }))}
-                style={{ flex: 1 }}
-              />
+                style={{ flex: 1 }} />
               {formData.image_url && (
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setFormData(p => ({ ...p, image_url: '' }))}
-                  title="Remove image URL"
-                  style={{ padding: '10px 12px' }}
-                >
+                <button type="button" className="btn btn-secondary"
+                  onClick={() => setFormData(p => ({ ...p, image_url: '' }))} title="Remove image URL"
+                  style={{ padding: '10px 12px' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                   </svg>
@@ -578,12 +583,9 @@ export default function Home() {
             </div>
             {formData.image_url && isValidUrl(formData.image_url) && (
               <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <img
-                  src={formData.image_url}
-                  alt="Preview"
+                <img src={formData.image_url} alt="Preview"
                   style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border-light)' }}
-                  onError={(e) => { e.target.style.display = 'none' }}
-                />
+                  onError={(e) => { e.target.style.display = 'none' }} />
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Preview</span>
               </div>
             )}
@@ -595,6 +597,7 @@ export default function Home() {
         </form>
       </Modal>
 
+      {/* Delete Modal */}
       <Modal isOpen={showDeleteModal} onClose={() => { setShowDeleteModal(false); setDeleteConfirm('') }} title="Confirm Deletion">
         <p style={{ color: 'var(--text-secondary)', marginBottom: 8 }}>
           Are you sure you want to delete <strong>{selectedProduct?.product_description}</strong>?
@@ -602,19 +605,15 @@ export default function Home() {
         <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
           This action cannot be undone. Type <strong>"Delete"</strong> to confirm.
         </p>
-        <input
-          className="confirm-input"
-          placeholder='Type "Delete" to confirm'
-          value={deleteConfirm}
-          onChange={e => setDeleteConfirm(e.target.value)}
-          autoFocus
-        />
+        <input className="confirm-input" placeholder='Type "Delete" to confirm'
+          value={deleteConfirm} onChange={e => setDeleteConfirm(e.target.value)} autoFocus />
         <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 20 }}>
           <button className="btn btn-secondary" onClick={() => { setShowDeleteModal(false); setDeleteConfirm('') }}>Cancel</button>
           <button className="btn btn-danger" onClick={handleDelete} disabled={deleteConfirm !== 'Delete'}>Delete</button>
         </div>
       </Modal>
 
+      {/* Archive Modal */}
       <Modal isOpen={showArchiveModal} onClose={() => setShowArchiveModal(false)} title="Archive Product">
         <p style={{ color: 'var(--text-secondary)' }}>
           Move <strong>{selectedProduct?.product_description}</strong> to archived products?
@@ -627,8 +626,6 @@ export default function Home() {
           <button className="btn btn-primary" onClick={handleArchive}>Archive</button>
         </div>
       </Modal>
-
-
     </div>
   )
 }

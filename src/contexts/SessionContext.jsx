@@ -5,13 +5,7 @@ import { useNotification } from './NotificationContext'
 const SESSION_DURATION = 60 * 60 * 1000
 const WARNING_BEFORE = 5 * 60 * 1000
 const GRACE_PERIOD = 5 * 60 * 1000
-const HEARTBEAT_INTERVAL = 8000
-const STALE_TIMEOUT = 25000
-
-const KEYS = {
-  EXPIRY: 'nhq-session-expiry',
-  ALL_CLOSED: 'nhq-all-tabs-closed',
-}
+const HEARTBEAT_INTERVAL = 5000
 
 const SessionContext = createContext()
 
@@ -25,72 +19,75 @@ export function SessionProvider({ children }) {
 
   const [remaining, setRemaining] = useState(null)
   const [warning, setWarning] = useState(false)
+  const [sessionExpired, setSessionExpired] = useState(false)
 
   const tabId = useRef(generateTabId())
   const channel = useRef(null)
-  const tabs = useRef(new Set())
   const warned = useRef(false)
   const expired = useRef(false)
-
-  const cleanup = useCallback(() => {
-    try { channel.current?.close() } catch {}
-    channel.current = null
-  }, [])
 
   const doLogout = useCallback((msg) => {
     if (expired.current) return
     expired.current = true
-    cleanup()
-    localStorage.removeItem(KEYS.EXPIRY)
-    localStorage.removeItem(KEYS.ALL_CLOSED)
+    try { channel.current?.close() } catch {}
+    localStorage.removeItem('nhq-session-expiry')
+    localStorage.removeItem('nhq-session-last-tab-time')
     if (msg) addToast(msg, 'warning')
+    setSessionExpired(true)
     logout()
-  }, [cleanup, addToast, logout])
+  }, [logout, addToast])
 
   useEffect(() => {
     if (!user) {
-      cleanup()
+      try { channel.current?.close() } catch {}
       setRemaining(null)
       setWarning(false)
       warned.current = false
       expired.current = false
+      setSessionExpired(false)
       return
     }
 
     const myId = tabId.current
     expired.current = false
     warned.current = false
+    setSessionExpired(false)
 
     const bc = new BroadcastChannel('nhq-session')
     channel.current = bc
 
+    const tabs = new Set()
+    tabs.add(myId)
+
     bc.postMessage({ type: 'TAB_OPEN', id: myId })
 
     bc.onmessage = (e) => {
-      const { type, id } = e.data
+      const { type, id, data } = e.data
       if (type === 'TAB_OPEN' || type === 'HEARTBEAT') {
-        tabs.current.add(id)
-        localStorage.removeItem(KEYS.ALL_CLOSED)
+        tabs.add(id)
+        localStorage.removeItem('nhq-session-last-tab-time')
       }
       if (type === 'TAB_CLOSE') {
-        tabs.current.delete(id)
+        tabs.delete(id)
       }
       if (type === 'SESSION_GONE') {
         doLogout('Your session has expired. Please log in again.')
       }
     }
 
-    let expiry = parseInt(localStorage.getItem(KEYS.EXPIRY), 10)
+    // Set expiry from localStorage or create new
+    let expiry = parseInt(localStorage.getItem('nhq-session-expiry'), 10)
     if (!expiry || expiry <= Date.now()) {
       expiry = Date.now() + SESSION_DURATION
-      localStorage.setItem(KEYS.EXPIRY, expiry)
+      localStorage.setItem('nhq-session-expiry', expiry.toString())
     }
 
-    const closedAt = localStorage.getItem(KEYS.ALL_CLOSED)
-    if (closedAt) {
-      const elapsed = Date.now() - parseInt(closedAt, 10)
+    // Check grace period
+    const lastTabTime = localStorage.getItem('nhq-session-last-tab-time')
+    if (lastTabTime) {
+      const elapsed = Date.now() - parseInt(lastTabTime, 10)
       if (elapsed < GRACE_PERIOD) {
-        localStorage.removeItem(KEYS.ALL_CLOSED)
+        localStorage.removeItem('nhq-session-last-tab-time')
       } else {
         doLogout('Your session has expired. Please log in again.')
         return
@@ -117,20 +114,23 @@ export function SessionProvider({ children }) {
     }, 1000)
 
     const heartbeat = setInterval(() => {
-      try { bc.postMessage({ type: 'HEARTBEAT', id: myId }) } catch {}
+      try {
+        bc.postMessage({ type: 'HEARTBEAT', id: myId })
+      } catch {}
     }, HEARTBEAT_INTERVAL)
-
-    const staleCheck = setInterval(() => {
-      bc.postMessage({ type: 'STALE_CHECK', id: myId })
-    }, STALE_TIMEOUT)
 
     const handleBeforeUnload = () => {
       try {
         bc.postMessage({ type: 'TAB_CLOSE', id: myId })
-        tabs.current.delete(myId)
-        if (tabs.current.size === 0) {
-          localStorage.setItem(KEYS.ALL_CLOSED, Date.now().toString())
-        }
+        tabs.delete(myId)
+
+        // Broadcast that user wants to know if other tabs exist
+        const checkTimer = setTimeout(() => {
+          if (tabs.size === 0) {
+            localStorage.setItem('nhq-session-last-tab-time', Date.now().toString())
+          }
+        }, 100)
+        ; window.addEventListener('unload', () => clearTimeout(checkTimer))
       } catch {}
     }
     window.addEventListener('beforeunload', handleBeforeUnload)
@@ -138,15 +138,14 @@ export function SessionProvider({ children }) {
     return () => {
       clearInterval(tick)
       clearInterval(heartbeat)
-      clearInterval(staleCheck)
       window.removeEventListener('beforeunload', handleBeforeUnload)
       handleBeforeUnload()
-      cleanup()
+      try { bc.close() } catch {}
     }
-  }, [user, doLogout, cleanup])
+  }, [user, doLogout])
 
   return (
-    <SessionContext.Provider value={{ remaining, warning }}>
+    <SessionContext.Provider value={{ remaining, warning, sessionExpired }}>
       {children}
       {warning && user && remaining > 0 && (
         <SessionWarning remaining={remaining} />

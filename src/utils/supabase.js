@@ -13,13 +13,34 @@ export const supabase = createClient(
 )
 
 export const ROLES = {
-  ROOT: 'root',
+  SUPER_USER: 'super_user',
   ADMIN: 'admin',
-  NHQ: 'nhq'
+  READ_ONLY: 'read_only'
 }
 
-export const USER_CREDENTIALS = {
-  root: { username: 'manash@nhqbd.com', password: 'Man&Mond71', role: 'root', name: 'Manash Kumar Mondal' },
-  admin: { username: 'admin', password: 'Man@321%', role: 'admin', name: 'Admin User' },
-  nhq: { username: 'nhq', password: 'Nhq@321%', role: 'nhq', name: 'NHQ User' }
+// Role hierarchy for permission checks
+export const ROLE_HIERARCHY = {
+  super_user: 3,
+  admin: 2,
+  read_only: 1
+}
+
+export function canManageUsers(role) {
+  return role === ROLES.SUPER_USER
+}
+
+export function canModifyInventory(role) {
+  return role === ROLES.SUPER_USER || role === ROLES.ADMIN
+}
+
+export function canExport(role) {
+  return role === ROLES.SUPER_USER || role === ROLES.ADMIN
+}
+
+export function canViewAllLogs(role) {
+  return role === ROLES.SUPER_USER
+}
+
+export function canViewAdminLogs(role) {
+  return role === ROLES.ADMIN
 }

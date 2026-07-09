@@ -1,237 +1,348 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { supabase, ROLES, USER_CREDENTIALS } from '../utils/supabase'
+import { supabase, ROLES, canManageUsers } from '../utils/supabase'
+
+function generateId() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16)
+  })
+}
 
 const AuthContext = createContext()
+const SESSION_DURATION = 60 * 60 * 1000
 
-const LOCKOUT_DURATION = 10 * 60 * 1000
-const MAX_ATTEMPTS = 3
-
-function loadPersistedPasswords() {
-  try {
-    const stored = localStorage.getItem('nhq-passwords')
-    if (stored) {
-      const data = JSON.parse(stored)
-      if (data.admin) USER_CREDENTIALS.admin.password = data.admin
-      if (data.nhq) USER_CREDENTIALS.nhq.password = data.nhq
-    }
-  } catch {}
-}
-
-function persistPassword(role, password) {
-  try {
-    const stored = JSON.parse(localStorage.getItem('nhq-passwords') || '{}')
-    stored[role] = password
-    localStorage.setItem('nhq-passwords', JSON.stringify(stored))
-  } catch {}
-}
-
-loadPersistedPasswords()
-
-function getStoredAttempts() {
-  try {
-    const data = JSON.parse(localStorage.getItem('nhq-login-attempts') || '{}')
-    const now = Date.now()
-    if (data.lockedUntil && now > data.lockedUntil) {
-      localStorage.removeItem('nhq-login-attempts')
-      return { count: 0, lockedUntil: null }
-    }
-    return data
-  } catch {
-    return { count: 0, lockedUntil: null }
-  }
-}
-
-function storeAttempt(count, lockedUntil) {
-  localStorage.setItem('nhq-login-attempts', JSON.stringify({ count, lockedUntil }))
+function generateToken() {
+  return generateId() + '-' + Date.now().toString(36)
 }
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [lockoutInfo, setLockoutInfo] = useState(() => {
-    const data = getStoredAttempts()
-    return data.lockedUntil ? { locked: true, until: data.lockedUntil } : null
-  })
+  const [sessionToken, setSessionToken] = useState(null)
 
   useEffect(() => {
-    const stored = localStorage.getItem('nhq-current-user')
-    if (stored) {
+    const storedUser = localStorage.getItem('nhq-current-user')
+    const storedToken = localStorage.getItem('nhq-session-token')
+    const expiry = parseInt(localStorage.getItem('nhq-session-expiry'), 10)
+
+    if (storedUser && storedToken && expiry && expiry > Date.now()) {
       try {
-        setUser(JSON.parse(stored))
-      } catch { }
+        const parsed = JSON.parse(storedUser)
+        setUser(parsed)
+        setSessionToken(storedToken)
+      } catch {}
     }
     setLoading(false)
   }, [])
 
-  useEffect(() => {
-    if (!lockoutInfo) return
-    if (!lockoutInfo.locked) return
-    const timer = setInterval(() => {
-      if (Date.now() >= lockoutInfo.until) {
-        setLockoutInfo(null)
-        localStorage.removeItem('nhq-login-attempts')
-        clearInterval(timer)
-      }
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [lockoutInfo])
-
   const login = useCallback(async (username, password) => {
-    setError('')
+    // Fetch user from database
+    const { data: users, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('username', username.toLowerCase())
+      .eq('is_active', true)
+      .limit(1)
 
-    const attempts = getStoredAttempts()
-    if (attempts.lockedUntil) {
-      const remaining = Math.ceil((attempts.lockedUntil - Date.now()) / 60000)
-      setLockoutInfo({ locked: true, until: attempts.lockedUntil })
+    if (error) throw new Error('Database error. Please try again.')
+
+    if (!users || users.length === 0) {
+      throw new Error('Invalid credentials.')
+    }
+
+    const dbUser = users[0]
+
+    // Check if account is locked
+    if (dbUser.locked_until && new Date(dbUser.locked_until) > new Date()) {
+      const remaining = Math.ceil((new Date(dbUser.locked_until) - new Date()) / 60000)
       throw new Error(`Account locked. Try again in ${remaining} minute(s).`)
     }
 
-    if (!username || !password) {
-      throw new Error('Please enter username and password.')
-    }
+    // Verify password
+    if (dbUser.password !== password) {
+      const newAttempts = (dbUser.failed_attempts || 0) + 1
 
-    const userEntry = Object.values(USER_CREDENTIALS).find(
-      u => u.username.toLowerCase() === username.toLowerCase()
-    )
-
-    if (!userEntry) {
-      const newCount = attempts.count + 1
-      const lockedUntil = newCount >= MAX_ATTEMPTS ? Date.now() + LOCKOUT_DURATION : null
-      storeAttempt(newCount, lockedUntil)
-      if (lockedUntil) {
-        setLockoutInfo({ locked: true, until: lockedUntil })
-        throw new Error(`Account locked for 10 minutes due to too many failed attempts.`)
+      if (newAttempts >= 3) {
+        await supabase
+          .from('users')
+          .update({
+            failed_attempts: newAttempts,
+            locked_until: new Date(Date.now() + 10 * 60 * 1000).toISOString()
+          })
+          .eq('id', dbUser.id)
+        throw new Error('Account locked for 10 minutes due to too many failed attempts.')
       }
-      throw new Error(`Invalid credentials. ${MAX_ATTEMPTS - newCount} attempt(s) remaining.`)
+
+      await supabase
+        .from('users')
+        .update({ failed_attempts: newAttempts })
+        .eq('id', dbUser.id)
+
+      const remaining = 3 - newAttempts
+      throw new Error(`Invalid credentials. ${remaining} attempt(s) remaining.`)
     }
 
-    if (password !== userEntry.password) {
-      const newCount = attempts.count + 1
-      const lockedUntil = newCount >= MAX_ATTEMPTS ? Date.now() + LOCKOUT_DURATION : null
-      storeAttempt(newCount, lockedUntil)
-      if (lockedUntil) {
-        setLockoutInfo({ locked: true, until: lockedUntil })
-        throw new Error(`Account locked for 10 minutes due to too many failed attempts.`)
-      }
-      throw new Error(`Invalid credentials. ${MAX_ATTEMPTS - newCount} attempt(s) remaining.`)
-    }
+    // Reset failed attempts on success
+    await supabase
+      .from('users')
+      .update({ failed_attempts: 0, locked_until: null })
+      .eq('id', dbUser.id)
 
-    localStorage.removeItem('nhq-login-attempts')
-    setLockoutInfo(null)
+    const token = generateToken()
+    const expiresAt = new Date(Date.now() + SESSION_DURATION).toISOString()
+
+    // Create session record in database
+    await supabase.from('sessions').insert({
+      user_id: dbUser.id,
+      token: token,
+      expires_at: expiresAt,
+      is_valid: true
+    })
+
+    // Log login activity
+    await supabase.from('activity_logs').insert({
+      product_id: null,
+      user_id: dbUser.id,
+      user_name: dbUser.display_name,
+      user_role: dbUser.role,
+      action: 'login',
+      description: `${dbUser.display_name} (${dbUser.role}) logged in`
+    })
 
     const userData = {
-      id: userEntry.username,
-      username: userEntry.username,
-      name: userEntry.name,
-      role: userEntry.role
+      id: dbUser.id,
+      username: dbUser.username,
+      display_name: dbUser.display_name,
+      role: dbUser.role
     }
 
     setUser(userData)
+    setSessionToken(token)
+
     localStorage.setItem('nhq-current-user', JSON.stringify(userData))
-    localStorage.setItem('nhq-session-expiry', (Date.now() + 3600000).toString())
-
-    const loginLog = {
-      id: crypto.randomUUID(),
-      product_id: null,
-      action: 'login',
-      description: `${userEntry.name} (${userEntry.role}) logged in`,
-      user_id: userEntry.username,
-      user_name: userEntry.name,
-      created_at: new Date().toISOString()
-    }
-
-    try {
-      const { error } = await supabase.from('activity_logs').insert({
-        product_id: null,
-        action: 'login',
-        description: loginLog.description,
-        user_id: userEntry.username,
-        user_name: userEntry.name
-      })
-      if (error) console.error('Login log insert failed:', error)
-    } catch (err) {
-      console.error('Login log insert error:', err)
-    }
-
-    try {
-      const stored = JSON.parse(localStorage.getItem('nhq-login-logs') || '[]')
-      stored.unshift(loginLog)
-      if (stored.length > 500) stored.length = 500
-      localStorage.setItem('nhq-login-logs', JSON.stringify(stored))
-    } catch {}
+    localStorage.setItem('nhq-session-token', token)
+    localStorage.setItem('nhq-session-expiry', expiresAt)
 
     return userData
   }, [])
 
-  const logout = useCallback(() => {
-    setUser(null)
-    localStorage.removeItem('nhq-current-user')
-    localStorage.removeItem('nhq-login-attempts')
-    localStorage.removeItem('nhq-session-expiry')
-    localStorage.removeItem('nhq-all-tabs-closed')
-  }, [])
+  const logout = useCallback(async () => {
+    if (user && sessionToken) {
+      // Invalidate session in database
+      await supabase
+        .from('sessions')
+        .update({ is_valid: false })
+        .eq('token', sessionToken)
 
-  const resetUserPassword = useCallback(async (targetUsername, newPassword) => {
-    const entry = Object.values(USER_CREDENTIALS).find(
-      u => u.username.toLowerCase() === targetUsername.toLowerCase()
-    )
-    if (!entry) throw new Error('User not found.')
-    if (entry.role === 'root') throw new Error('Cannot reset root password through this interface.')
-    if (entry.role === 'nhq' || entry.role === 'admin') {
-      USER_CREDENTIALS[entry.role].password = newPassword
-      persistPassword(entry.role, newPassword)
-      return true
+      // Log logout
+      await supabase.from('activity_logs').insert({
+        product_id: null,
+        user_id: user.id,
+        user_name: user.display_name,
+        user_role: user.role,
+        action: 'logout',
+        description: `${user.display_name} (${user.role}) logged out`
+      })
     }
-    throw new Error('Invalid user.')
-  }, [])
 
-  const checkRootSecurity = useCallback(async (answer) => {
-    const stored = localStorage.getItem('nhq-root-security')
-    if (!stored) return false
-    const data = JSON.parse(stored)
-    if (data.answer === answer) return true
-    return false
-  }, [])
+    setUser(null)
+    setSessionToken(null)
+    localStorage.removeItem('nhq-current-user')
+    localStorage.removeItem('nhq-session-token')
+    localStorage.removeItem('nhq-session-expiry')
+    localStorage.removeItem('nhq-session-last-tab-time')
+  }, [user, sessionToken])
 
-  const setRootSecurity = useCallback(async (question, answer) => {
-    localStorage.setItem('nhq-root-security', JSON.stringify({ question, answer }))
+  const changePassword = useCallback(async (currentPassword, newPassword) => {
+    if (!user) throw new Error('Not authenticated.')
+
+    const { data: dbUser, error } = await supabase
+      .from('users')
+      .select('password')
+      .eq('id', user.id)
+      .single()
+
+    if (error || !dbUser) throw new Error('User not found.')
+    if (dbUser.password !== currentPassword) throw new Error('Current password is incorrect.')
+
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({
+        password: newPassword,
+        last_password_change: new Date().toISOString()
+      })
+      .eq('id', user.id)
+
+    if (updateError) throw updateError
+
+    await supabase.from('activity_logs').insert({
+      product_id: null,
+      user_id: user.id,
+      user_name: user.display_name,
+      user_role: user.role,
+      action: 'password_change',
+      description: `${user.display_name} changed their password`
+    })
+
     return true
-  }, [])
+  }, [user])
 
-  const resetRootPassword = useCallback(async (newPassword) => {
-    USER_CREDENTIALS.root.password = newPassword
-    localStorage.removeItem('nhq-root-security')
+  const createUser = useCallback(async (username, password, displayName, role) => {
+    if (!user || user.role !== ROLES.SUPER_USER) throw new Error('Unauthorized.')
+
+    const { data: existing } = await supabase
+      .from('users')
+      .select('id')
+      .eq('username', username.toLowerCase())
+      .limit(1)
+
+    if (existing && existing.length > 0) throw new Error('Username already exists.')
+
+    const { data: newUser, error } = await supabase
+      .from('users')
+      .insert({
+        username: username.toLowerCase(),
+        password: password,
+        display_name: displayName,
+        role: role
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+
+    await supabase.from('activity_logs').insert({
+      product_id: null,
+      user_id: user.id,
+      user_name: user.display_name,
+      user_role: user.role,
+      action: 'user_create',
+      description: `Created user "${username}" with role "${role}"`
+    })
+
+    return newUser
+  }, [user])
+
+  const deleteUser = useCallback(async (userId) => {
+    if (!user || user.role !== ROLES.SUPER_USER) throw new Error('Unauthorized.')
+    if (userId === user.id) throw new Error('Cannot delete your own account.')
+
+    const { data: targetUser } = await supabase
+      .from('users')
+      .select('username, display_name')
+      .eq('id', userId)
+      .single()
+
+    if (!targetUser) throw new Error('User not found.')
+
+    const { error } = await supabase
+      .from('users')
+      .update({ is_active: false })
+      .eq('id', userId)
+
+    if (error) throw error
+
+    await supabase.from('activity_logs').insert({
+      product_id: null,
+      user_id: user.id,
+      user_name: user.display_name,
+      user_role: user.role,
+      action: 'user_delete',
+      description: `Deleted user "${targetUser.username}" (${targetUser.display_name})`
+    })
+
     return true
-  }, [])
+  }, [user])
 
-  const getLockoutRemaining = useCallback(() => {
-    if (!lockoutInfo || !lockoutInfo.locked) return 0
-    return Math.max(0, Math.ceil((lockoutInfo.until - Date.now()) / 1000))
-  }, [lockoutInfo])
+  const resetUserPassword = useCallback(async (userId, newPassword) => {
+    if (!user || user.role !== ROLES.SUPER_USER) throw new Error('Unauthorized.')
 
-  const canEdit = user && (user.role === ROLES.ROOT || user.role === ROLES.ADMIN)
-  const canExport = user && (user.role === ROLES.ROOT || user.role === ROLES.ADMIN)
-  const isRoot = user?.role === ROLES.ROOT
-  const isReadOnly = user?.role === ROLES.NHQ
+    const { data: targetUser } = await supabase
+      .from('users')
+      .select('username, display_name')
+      .eq('id', userId)
+      .single()
+
+    if (!targetUser) throw new Error('User not found.')
+
+    const { error } = await supabase
+      .from('users')
+      .update({
+        password: newPassword,
+        last_password_change: new Date().toISOString(),
+        failed_attempts: 0,
+        locked_until: null
+      })
+      .eq('id', userId)
+
+    if (error) throw error
+
+    await supabase.from('activity_logs').insert({
+      product_id: null,
+      user_id: user.id,
+      user_name: user.display_name,
+      user_role: user.role,
+      action: 'password_reset',
+      description: `Reset password for user "${targetUser.username}"`
+    })
+
+    return true
+  }, [user])
+
+  const getUsers = useCallback(async () => {
+    if (!user || user.role !== ROLES.SUPER_USER) throw new Error('Unauthorized.')
+
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, username, display_name, role, is_active, created_at, last_password_change, failed_attempts, locked_until')
+      .order('created_at', { ascending: true })
+
+    if (error) throw error
+    return data || []
+  }, [user])
+
+  const validateSession = useCallback(async () => {
+    if (!sessionToken) return false
+
+    const { data, error } = await supabase
+      .from('sessions')
+      .select('is_valid, expires_at')
+      .eq('token', sessionToken)
+      .eq('is_valid', true)
+      .single()
+
+    if (error || !data) return false
+
+    // Check if expired
+    if (new Date(data.expires_at) <= new Date()) {
+      await supabase.from('sessions').update({ is_valid: false }).eq('token', sessionToken)
+      logout()
+      return false
+    }
+
+    return true
+  }, [sessionToken, logout])
 
   return (
     <AuthContext.Provider value={{
       user,
       loading,
-      error,
       login,
       logout,
+      changePassword,
+      createUser,
+      deleteUser,
       resetUserPassword,
-      checkRootSecurity,
-      setRootSecurity,
-      resetRootPassword,
-      getLockoutRemaining,
-      lockoutInfo,
-      canEdit,
-      canExport,
-      isRoot,
-      isReadOnly
+      getUsers,
+      validateSession,
+      isSuperUser: user?.role === ROLES.SUPER_USER,
+      isAdmin: user?.role === ROLES.ADMIN,
+      isReadOnly: user?.role === ROLES.READ_ONLY,
+      canManageUsers: user?.role === ROLES.SUPER_USER,
+      canModifyInventory: user?.role === ROLES.SUPER_USER || user?.role === ROLES.ADMIN,
+      canExport: user?.role === ROLES.SUPER_USER || user?.role === ROLES.ADMIN,
+      canViewAllLogs: user?.role === ROLES.SUPER_USER,
+      canViewAdminLogs: user?.role === ROLES.ADMIN
     }}>
       {children}
     </AuthContext.Provider>

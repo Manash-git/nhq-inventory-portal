@@ -1,41 +1,51 @@
-import { useState, useEffect, useCallback } from 'react'
-import { supabase, USER_CREDENTIALS } from '../../utils/supabase'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { supabase } from '../../utils/supabase'
 import { useAuth } from '../../contexts/AuthContext'
+import { useNotification } from '../../contexts/NotificationContext'
 import { formatDate, formatDateTime } from '../../utils/helpers'
 import ContributionGraph from './ContributionGraph'
 import './History.css'
 
-const USERNAME_ROLE_MAP = Object.fromEntries(
-  Object.values(USER_CREDENTIALS).map(u => [u.username, u.role])
-)
-
 export default function History() {
-  const { user } = useAuth()
+  const { user, canViewAllLogs, canViewAdminLogs } = useAuth()
+  const { addToast } = useNotification()
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem('nhq-history-tab') || 'activity')
   const switchTab = (tab) => { localStorage.setItem('nhq-history-tab', tab); setActiveTab(tab) }
   const [logs, setLogs] = useState([])
   const [archived, setArchived] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [sortBy, setSortBy] = useState('created_at')
-  const [sortDir, setSortDir] = useState('desc')
   const [archiveSearch, setArchiveSearch] = useState('')
   const [archiveSort, setArchiveSort] = useState('product_description')
   const [archiveSortDir, setArchiveSortDir] = useState('asc')
+  const channelRef = useRef(null)
 
   const fetchLogs = useCallback(async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('activity_logs')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(500)
+
+      // Role-based filtering
+      if (canViewAllLogs) {
+        // Super user can see all logs
+      } else if (canViewAdminLogs) {
+        // Admin can see admin and read_only logs
+        query = query.in('user_role', ['admin', 'read_only'])
+      } else {
+        // Read-only can only see own logs
+        query = query.eq('user_id', user.id)
+      }
+
+      const { data, error } = await query
       if (error) throw error
       setLogs(data || [])
     } catch (err) {
-      console.error(err)
+      addToast('Failed to load logs', 'error')
     }
-  }, [])
+  }, [user, canViewAllLogs, canViewAdminLogs, addToast])
 
   const fetchArchived = useCallback(async () => {
     try {
@@ -54,40 +64,62 @@ export default function History() {
   useEffect(() => {
     setLoading(true)
     Promise.all([fetchLogs(), fetchArchived()]).finally(() => setLoading(false))
+
+    // Set up realtime subscription for activity logs
+    const channel = supabase
+      .channel('activity-logs-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'activity_logs'
+        },
+        (payload) => {
+          console.log('Realtime log change:', payload)
+          fetchLogs()
+        }
+      )
+      .subscribe()
+
+    // Set up realtime subscription for archived products
+    const archivedChannel = supabase
+      .channel('archived-products-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'products',
+          filter: 'is_archived=eq.true'
+        },
+        (payload) => {
+          console.log('Realtime archived product change:', payload)
+          fetchArchived()
+        }
+      )
+      .subscribe()
+
+    channelRef.current = channel
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current)
+      }
+      if (archivedChannel) {
+        supabase.removeChannel(archivedChannel)
+      }
+    }
   }, [fetchLogs, fetchArchived])
 
-  const localLoginLogs = (() => {
-    try {
-      return JSON.parse(localStorage.getItem('nhq-login-logs') || '[]')
-    } catch {
-      return []
-    }
-  })()
-
-  const allLogsWithLocal = (() => {
-    const localIds = new Set(localLoginLogs.map(l => l.id))
-    const filteredRemote = logs.filter(l => l.action !== 'login' || !localIds.has(l.id))
-    return [...localLoginLogs, ...filteredRemote]
-  })()
-
-  const filteredLogs = allLogsWithLocal.filter(l => {
+  const filteredLogs = logs.filter(l => {
     const q = search.toLowerCase()
-    const matchesSearch =
+    return (
       l.description?.toLowerCase().includes(q) ||
       l.action?.toLowerCase().includes(q) ||
-      l.user_name?.toLowerCase().includes(q)
-
-    if (!matchesSearch) return false
-
-    if (l.action === 'login') {
-      const role = USERNAME_ROLE_MAP[l.user_id]
-      if (user?.role === 'root') return true
-      if (user?.role === 'admin') return role === 'admin' || role === 'nhq'
-      if (user?.role === 'nhq') return role === 'nhq'
-      return false
-    }
-
-    return true
+      l.user_name?.toLowerCase().includes(q) ||
+      l.user_role?.toLowerCase().includes(q)
+    )
   })
 
   const filteredArchived = archived.filter(p => {
@@ -108,32 +140,102 @@ export default function History() {
     }
   }
 
-  const getActionIcon = (action) => {
-    switch (action) {
-      case 'add': return 'add'
-      case 'delete': return 'delete'
-      case 'edit': return 'edit'
-      case 'archived': return 'archive'
-      default: return 'info'
-    }
-  }
-
   const getActionColor = (action) => {
     switch (action) {
       case 'add': return 'var(--success)'
       case 'delete': return 'var(--danger)'
       case 'edit': return 'var(--accent-primary)'
-      case 'archived': return 'var(--warning)'
+      case 'archive': return 'var(--warning)'
+      case 'login': return 'var(--accent-secondary)'
+      case 'logout': return 'var(--text-muted)'
+      case 'quantity_change': return 'var(--accent-primary)'
+      case 'password_change': return 'var(--warning)'
+      case 'user_create': return 'var(--success)'
+      case 'user_delete': return 'var(--danger)'
+      case 'password_reset': return 'var(--warning)'
+      case 'export': return 'var(--accent-secondary)'
       default: return 'var(--text-muted)'
     }
   }
 
-  const getLoginRoleBadge = (role) => {
-    switch (role) {
-      case 'root': return 'login-badge-root'
-      case 'admin': return 'login-badge-admin'
-      case 'nhq': return 'login-badge-nhq'
-      default: return ''
+  const getActionIcon = (action) => {
+    switch (action) {
+      case 'add': return 'add'
+      case 'delete': return 'delete'
+      case 'edit': return 'edit'
+      case 'archive': return 'archive'
+      case 'quantity_change': return 'edit'
+      case 'login': return 'login'
+      case 'logout': return 'logout'
+      case 'password_change': return 'password'
+      case 'user_create': return 'add'
+      case 'user_delete': return 'delete'
+      case 'password_reset': return 'password'
+      case 'export': return 'export'
+      default: return 'info'
+    }
+  }
+
+  const renderActionIcon = (action) => {
+    const icon = getActionIcon(action)
+    const color = getActionColor(action)
+
+    switch (icon) {
+      case 'add':
+        return (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        )
+      case 'delete':
+        return (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+        )
+      case 'edit':
+        return (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+        )
+      case 'archive':
+        return (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+            <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>
+          </svg>
+        )
+      case 'login':
+        return (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
+          </svg>
+        )
+      case 'logout':
+        return (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        )
+      case 'password':
+        return (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        )
+      case 'export':
+        return (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+        )
+      default:
+        return (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+          </svg>
+        )
     }
   }
 
@@ -169,21 +271,21 @@ export default function History() {
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: 60 }}>
-          <div style={{ width: 32, height: 32, border: '3px solid var(--border-color)', borderTopColor: 'var(--accent-primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
+          <div className="spinner" />
         </div>
       ) : (
         <>
           {activeTab === 'activity' && (
             <div className="card" style={{ padding: 0 }}>
               <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 16 }}>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="Search logs..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  style={{ flex: 1, maxWidth: 400 }}
-                />
+                <div className="search-input-wrapper">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                  </svg>
+                  <input type="text" className="form-input" placeholder="Search logs..."
+                    value={search} onChange={e => setSearch(e.target.value)}
+                    style={{ flex: 1, maxWidth: 400, paddingLeft: 36 }} />
+                </div>
                 <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
                   {filteredLogs.length} entries
                 </span>
@@ -199,65 +301,29 @@ export default function History() {
               ) : (
                 <div className="activity-list">
                   {filteredLogs.map(log => (
-                    log.action === 'login' ? (
-                      <div key={log.id} className="activity-item">
-                        <div className={`login-activity-avatar ${USERNAME_ROLE_MAP[log.user_id] || 'unknown'}`}>
-                          {log.user_name?.charAt(0)?.toUpperCase() || 'U'}
-                        </div>
-                        <div className="activity-details">
-                          <div className="activity-desc">
-                            <strong>{log.user_name || 'Unknown User'}</strong>
-                            <span className={`login-role-badge ${getLoginRoleBadge(USERNAME_ROLE_MAP[log.user_id])}`}>
-                              {USERNAME_ROLE_MAP[log.user_id] || 'unknown'}
-                            </span>
-                          </div>
-                          <div className="activity-meta">
-                            <span className="activity-user">{log.user_id}</span>
-                            <span className="activity-time">{formatDateTime(log.created_at)}</span>
-                          </div>
-                        </div>
-                        <div className="login-icon-wrapper">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
-                          </svg>
+                    <div key={log.id} className="activity-item">
+                      <div className="activity-icon" style={{ background: `${getActionColor(log.action)}15`, color: getActionColor(log.action) }}>
+                        {renderActionIcon(log.action)}
+                      </div>
+                      <div className="activity-details">
+                        <div className="activity-desc">{log.description}</div>
+                        <div className="activity-meta">
+                          <span className="activity-user">{log.user_name || 'Unknown'}</span>
+                          <span className="activity-role-badge" style={{
+                            background: log.user_role === 'super_user' ? 'rgba(59, 130, 246, 0.1)' :
+                              log.user_role === 'admin' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(234, 179, 8, 0.1)',
+                            color: log.user_role === 'super_user' ? '#3b82f6' :
+                              log.user_role === 'admin' ? '#10b981' : '#eab308'
+                          }}>
+                            {log.user_role?.replace('_', ' ')}
+                          </span>
+                          <span className="activity-action-badge" style={{ background: `${getActionColor(log.action)}15`, color: getActionColor(log.action) }}>
+                            {log.action.replace('_', ' ')}
+                          </span>
+                          <span className="activity-time">{formatDateTime(log.created_at)}</span>
                         </div>
                       </div>
-                    ) : (
-                      <div key={log.id} className="activity-item">
-                        <div className="activity-icon" style={{ background: `${getActionColor(log.action)}15`, color: getActionColor(log.action) }}>
-                          {log.action === 'add' && (
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                            </svg>
-                          )}
-                          {log.action === 'delete' && (
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                            </svg>
-                          )}
-                          {log.action === 'edit' && (
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                            </svg>
-                          )}
-                          {log.action === 'archived' && (
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>
-                            </svg>
-                          )}
-                        </div>
-                        <div className="activity-details">
-                          <div className="activity-desc">{log.description}</div>
-                          <div className="activity-meta">
-                            <span className="activity-user">{log.user_name || 'Unknown'}</span>
-                            <span className="activity-action-badge" style={{ background: `${getActionColor(log.action)}15`, color: getActionColor(log.action) }}>
-                              {log.action}
-                            </span>
-                            <span className="activity-time">{formatDateTime(log.created_at)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    )
+                    </div>
                   ))}
                 </div>
               )}
@@ -271,14 +337,14 @@ export default function History() {
           {activeTab === 'archived' && (
             <div className="card" style={{ padding: 0 }}>
               <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 16 }}>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="Search archived..."
-                  value={archiveSearch}
-                  onChange={e => setArchiveSearch(e.target.value)}
-                  style={{ flex: 1, maxWidth: 400 }}
-                />
+                <div className="search-input-wrapper">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                  </svg>
+                  <input type="text" className="form-input" placeholder="Search archived..."
+                    value={archiveSearch} onChange={e => setArchiveSearch(e.target.value)}
+                    style={{ flex: 1, maxWidth: 400, paddingLeft: 36 }} />
+                </div>
                 <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
                   {filteredArchived.length} items
                 </span>
@@ -297,16 +363,16 @@ export default function History() {
                     <thead>
                       <tr>
                         <th onClick={() => handleArchiveSort('product_description')} style={{ cursor: 'pointer' }}>
-                          Product Description {archiveSort === 'product_description' ? (archiveSortDir === 'asc' ? '↑' : '↓') : ''}
+                          Product Description {archiveSort === 'product_description' ? (archiveSortDir === 'asc' ? '↑' : '↓') : '↕'}
                         </th>
                         <th onClick={() => handleArchiveSort('part_number')} style={{ cursor: 'pointer' }}>
-                          Part Number {archiveSort === 'part_number' ? (archiveSortDir === 'asc' ? '↑' : '↓') : ''}
+                          Part Number {archiveSort === 'part_number' ? (archiveSortDir === 'asc' ? '↑' : '↓') : '↕'}
                         </th>
                         <th onClick={() => handleArchiveSort('category')} style={{ cursor: 'pointer' }}>
-                          Category {archiveSort === 'category' ? (archiveSortDir === 'asc' ? '↑' : '↓') : ''}
+                          Category {archiveSort === 'category' ? (archiveSortDir === 'asc' ? '↑' : '↓') : '↕'}
                         </th>
                         <th onClick={() => handleArchiveSort('archived_at')} style={{ cursor: 'pointer' }}>
-                          Archived Date {archiveSort === 'archived_at' ? (archiveSortDir === 'asc' ? '↑' : '↓') : ''}
+                          Archived Date {archiveSort === 'archived_at' ? (archiveSortDir === 'asc' ? '↑' : '↓') : '↕'}
                         </th>
                       </tr>
                     </thead>

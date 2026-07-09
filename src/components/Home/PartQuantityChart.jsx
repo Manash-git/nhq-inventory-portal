@@ -1,60 +1,33 @@
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
-
-const CATEGORY_COLORS = {
-  'NetBackup Appliance': '#3b82f6',
-  'Flex Appliance': '#14b8a6',
-  'Other / Shared': '#f59e0b'
-}
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 export default function PartQuantityChart({ products }) {
-  if (!products || products.length === 0) {
-    return (
-      <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
-        No data to display
-      </div>
-    )
-  }
-
   const data = products
-    .filter(p => p.part_number)
-    .map(p => ({
-      name: p.part_number,
-      quantity: p.quantity,
-      category: p.category
-    }))
+    .slice()
     .sort((a, b) => b.quantity - a.quantity)
+    .slice(0, 15)
+    .map(p => ({
+      name: p.product_description?.length > 25 ? p.product_description.slice(0, 25) + '...' : p.product_description,
+      quantity: p.quantity,
+      part: p.part_number
+    }))
 
   return (
-    <ResponsiveContainer width="100%" height={160}>
-      <BarChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 4 }}>
-        <XAxis
-          dataKey="name"
-          tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
-          axisLine={{ stroke: 'var(--border-color)' }}
-          tickLine={false}
-        />
-        <YAxis
-          tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
-          axisLine={false}
-          tickLine={false}
-          allowDecimals={false}
-        />
+    <ResponsiveContainer width="100%" height={250}>
+      <BarChart data={data} layout="vertical" margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
+        <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={{ stroke: 'var(--border-light)' }} />
+        <YAxis dataKey="name" type="category" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={{ stroke: 'var(--border-light)' }} width={150} />
         <Tooltip
           contentStyle={{
             background: 'var(--bg-card)',
             border: '1px solid var(--border-color)',
             borderRadius: 8,
-            fontSize: '0.8125rem',
-            boxShadow: 'var(--shadow-md)'
+            color: 'var(--text-primary)',
+            fontSize: 13
           }}
-          labelStyle={{ color: 'var(--text-primary)', fontWeight: 600, marginBottom: 4 }}
-          formatter={(value, name, props) => [value, `${props.payload.category} - Qty`]}
+          formatter={(value, name, props) => [value, props.payload.part || 'Quantity']}
         />
-        <Bar dataKey="quantity" radius={[6, 6, 0, 0]} maxBarSize={48}>
-          {data.map((entry, index) => (
-            <Cell key={index} fill={CATEGORY_COLORS[entry.category] || 'var(--chart-5)'} />
-          ))}
-        </Bar>
+        <Bar dataKey="quantity" fill="var(--chart-2)" radius={[0, 4, 4, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )

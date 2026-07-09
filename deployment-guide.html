@@ -5,615 +5,147 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NHQ Inventory Portal - Deployment Guide</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #f4f6f9;
-      color: #1a1f36;
-      line-height: 1.7;
-      padding: 40px 20px;
-    }
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-      background: #fff;
-      border-radius: 16px;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-      padding: 48px 40px;
-    }
-    h1 {
-      font-size: 2rem;
-      font-weight: 700;
-      color: #0a1628;
-      margin-bottom: 4px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .subtitle {
-      color: #5e6c84;
-      font-size: 1rem;
-      margin-bottom: 32px;
-      padding-bottom: 24px;
-      border-bottom: 2px solid #eef0f4;
-    }
-    h2 {
-      font-size: 1.3rem;
-      font-weight: 600;
-      color: #0a1628;
-      margin: 32px 0 16px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid #eef0f4;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    h3 {
-      font-size: 1.05rem;
-      font-weight: 600;
-      color: #1a1f36;
-      margin: 24px 0 10px;
-    }
-    p { margin-bottom: 14px; color: #3a4a5c; }
-    ul, ol { margin: 10px 0 18px 24px; }
-    li { margin-bottom: 8px; color: #3a4a5c; }
-    .step {
-      background: #f8faff;
-      border-left: 4px solid #0052ff;
-      padding: 20px 24px;
-      margin: 20px 0;
-      border-radius: 0 12px 12px 0;
-    }
-    .step h3 { margin-top: 0; color: #0052ff; }
-    code {
-      background: #eef1f5;
-      padding: 2px 8px;
-      border-radius: 5px;
-      font-size: 0.875rem;
-      color: #0052ff;
-      font-family: 'Consolas', 'Courier New', monospace;
-    }
-    pre {
-      background: #0a1628;
-      color: #e2e8f0;
-      padding: 16px 20px;
-      border-radius: 10px;
-      overflow-x: auto;
-      font-size: 0.875rem;
-      line-height: 1.5;
-      margin: 12px 0;
-      font-family: 'Consolas', 'Courier New', monospace;
-    }
-    pre .comment { color: #64748b; }
-    pre .keyword { color: #93c5fd; }
-    pre .string { color: #68d391; }
-    .note {
-      background: #fff8e1;
-      border-left: 4px solid #d69e2e;
-      padding: 14px 18px;
-      border-radius: 0 8px 8px 0;
-      margin: 16px 0;
-      font-size: 0.9rem;
-    }
-    .warning {
-      background: #ffebee;
-      border-left: 4px solid #e53e3e;
-      padding: 14px 18px;
-      border-radius: 0 8px 8px 0;
-      margin: 16px 0;
-      font-size: 0.9rem;
-    }
-    .success {
-      background: #e8f5e9;
-      border-left: 4px solid #38a169;
-      padding: 14px 18px;
-      border-radius: 0 8px 8px 0;
-      margin: 16px 0;
-      font-size: 0.9rem;
-    }
-    .toc {
-      background: #f8faff;
-      border-radius: 12px;
-      padding: 20px 24px;
-      margin-bottom: 28px;
-    }
-    .toc a {
-      color: #0052ff;
-      text-decoration: none;
-    }
-    .toc a:hover { text-decoration: underline; }
-    .toc li { margin-bottom: 6px; }
-    .badge {
-      display: inline-block;
-      background: #eef1f5;
-      padding: 1px 10px;
-      border-radius: 20px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: #5e6c84;
-    }
-    hr { border: none; border-top: 1px solid #eef0f4; margin: 32px 0; }
-    .footer {
-      text-align: center;
-      margin-top: 40px;
-      padding-top: 24px;
-      border-top: 1px solid #eef0f4;
-      color: #8895aa;
-      font-size: 0.875rem;
-    }
-    img { max-width: 100%; height: auto; }
-    @media (max-width: 600px) {
-      .container { padding: 24px 16px; }
-      h1 { font-size: 1.5rem; flex-wrap: wrap; }
-    }
-    .button {
-      display: inline-block;
-      background: #0052ff;
-      color: #fff;
-      padding: 10px 24px;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: 500;
-      font-size: 0.9rem;
-      margin: 4px 0;
-    }
-    .button:hover { background: #0040cc; }
-    .button-green { background: #38a169; }
-    .button-green:hover { background: #2f855a; }
-    .button-dark { background: #0a1628; }
-    .button-dark:hover { background: #1a2744; }
-    .button-outline {
-      display: inline-block;
-      border: 1.5px solid #dfe3e8;
-      color: #1a1f36;
-      padding: 10px 24px;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: 500;
-      font-size: 0.9rem;
-      margin: 4px 0;
-    }
-    .button-outline:hover { border-color: #0052ff; color: #0052ff; }
-    .table-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin: 12px 0; }
-    th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #eef0f4; }
-    th { background: #f4f6f9; font-weight: 600; color: #5e6c84; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.6; color: #1a1f36; }
+    h1 { border-bottom: 3px solid #0052ff; padding-bottom: 10px; }
+    h2 { margin-top: 32px; color: #0052ff; }
+    h3 { margin-top: 24px; }
+    code { background: #f0f2f5; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+    pre { background: #1e293b; color: #e2e8f0; padding: 16px; border-radius: 8px; overflow-x: auto; }
+    .step { background: #f4f6f9; border-left: 4px solid #0052ff; padding: 16px; margin: 16px 0; border-radius: 0 8px 8px 0; }
+    .warning { background: #fff8e1; border-left: 4px solid #d69e2e; padding: 16px; margin: 16px 0; border-radius: 0 8px 8px 0; }
   </style>
 </head>
 <body>
-<div class="container">
+  <h1>NHQ Inventory Portal - Deployment Guide</h1>
+  <p>Step-by-step guide to deploy using Supabase + GitHub + Netlify</p>
 
-  <h1>
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0052ff" stroke-width="2">
-      <polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/>
-      <polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/>
-      <line x1="3" y1="3" x2="9" y2="9"/>
-    </svg>
-    NHQ Inventory Portal — Deployment Guide
-  </h1>
-  <p class="subtitle">Step-by-step instructions to put your inventory portal live on the internet using GitHub + Netlify.</p>
-
-  <div class="toc">
-    <strong style="color: #0a1628;">What's inside this guide?</strong>
-    <ol style="margin-top: 10px;">
-      <li><a href="#overview">Overview (What we are going to do)</a></li>
-      <li><a href="#prereq">What you need before starting</a></li>
-      <li><a href="#supabase">Step 1: Set up Supabase (Database)</a></li>
-      <li><a href="#github">Step 2: Create a GitHub Account & Push Code</a></li>
-      <li><a href="#netlify">Step 3: Deploy on Netlify</a></li>
-      <li><a href="#env">Step 4: Set Environment Variables (Connect to Database)</a></li>
-      <li><a href="#redeploy">Step 5: Re-deploy & Verify</a></li>
-      <li><a href="#updates">How to make changes later</a></li>
-      <li><a href="#troubleshoot">Troubleshooting (Common Problems)</a></li>
-    </ol>
-  </div>
-
-  <!-- 1. OVERVIEW -->
-  <h2 id="overview">1. Overview</h2>
-  <p>We will take the project files from your computer and put them on the internet so anyone in your office can use them. The process has 3 simple parts:</p>
-  <ol>
-    <li><strong>Supabase</strong> — Create a free online database to store your inventory data</li>
-    <li><strong>GitHub</strong> — Upload your project files to the cloud (like Google Drive for code)</li>
-    <li><strong>Netlify</strong> — Host your website for free and connect it to the database</li>
-  </ol>
-  <p>After this, your portal will be live at a URL like <code>https://your-site-name.netlify.app</code></p>
-
-  <div class="note">
-    <strong>⏱ Time required:</strong> 20-30 minutes. <strong>Cost:</strong> Free (all services have free plans).
-  </div>
-
-  <hr>
-
-  <!-- 2. PREREQUISITES -->
-  <h2 id="prereq">2. What You Need Before Starting</h2>
-  <ul>
-    <li>A computer with internet connection</li>
-    <li>The project folder (<code>Portal web project</code>) saved on your desktop</li>
-    <li>A modern web browser (Chrome, Edge, or Firefox)</li>
-    <li>An email address you can access (for signing up to GitHub and Netlify)</li>
-  </ul>
-
-  <div class="success">
-    <strong>✅ Already have a GitHub or Netlify account?</strong> You can skip the sign-up parts and jump directly to the relevant step.
-  </div>
-
-  <hr>
-
-  <!-- 3. SUPABASE SETUP -->
-  <h2 id="supabase">3. Step 1: Set Up Supabase (Database)</h2>
-  <p>Supabase is the free online database that stores all your products, activity logs, and user information. Follow these steps:</p>
-
+  <h2>Step 1: Set up Supabase Database</h2>
   <div class="step">
-    <h3>Step 1.1 — Create a Supabase Account</h3>
-    <ol>
-      <li>Open your browser and go to <a href="https://supabase.com" target="_blank">https://supabase.com</a></li>
-      <li>Click the <strong>"Start your project"</strong> or <strong>"Sign In"</strong> button at the top-right</li>
-      <li>Click <strong>"Sign Up"</strong> and enter your email + password (or sign in with GitHub / Google)</li>
-      <li>Check your email for a verification link and click it to verify your account</li>
-    </ol>
+    <h3>1.1 Create a Supabase Project</h3>
+    <p>Go to <a href="https://supabase.com">https://supabase.com</a> and sign up / log in.</p>
+    <p>Click <strong>"New Project"</strong> and fill in:</p>
+    <ul>
+      <li><strong>Name:</strong> nhq-inventory</li>
+      <li><strong>Database Password:</strong> Create a strong password (save it somewhere)</li>
+      <li><strong>Region:</strong> Choose the closest region to you</li>
+    </ul>
+    <p>Wait ~2 minutes for the database to be provisioned.</p>
   </div>
 
   <div class="step">
-    <h3>Step 1.2 — Create a New Project</h3>
+    <h3>1.2 Run the Database Schema</h3>
+    <p>In your Supabase project dashboard:</p>
     <ol>
-      <li>After logging in, you will see a <strong>"New project"</strong> button — click it</li>
-      <li>Fill in the details:
-        <ul>
-          <li><strong>Name:</strong> <code>nhq-inventory</code> (or any name you like)</li>
-          <li><strong>Database Password:</strong> Create a strong password and <strong>write it down somewhere safe</strong> (you will need it later for backups)</li>
-          <li><strong>Region:</strong> Choose <code>Singapore</code> or <code>India</code> (closest to Bangladesh for faster speed)</li>
-        </ul>
-      </li>
-      <li>Click <strong>"Create new project"</strong></li>
-      <li>Wait for 2-3 minutes while Supabase sets up your database (you will see a loading screen)</li>
+      <li>Go to <strong>SQL Editor</strong> (left sidebar)</li>
+      <li>Click <strong>"New Query"</strong></li>
+      <li>Open the file <code>supabase-schema.sql</code> from this project</li>
+      <li>Copy the entire contents and paste into the SQL Editor</li>
+      <li>Click <strong>"Run"</strong> (or press Ctrl+Enter)</li>
     </ol>
-    <div class="note">
-      <strong>📝 Note:</strong> Make sure to remember or save the database password. You won't need it for normal use, but it's important for database backups.
-    </div>
+    <p>This will create all 4 tables (users, products, activity_logs, sessions) plus the initial super user account.</p>
   </div>
 
   <div class="step">
-    <h3>Step 1.3 — Find Your API Keys</h3>
+    <h3>1.3 Get Your API Keys</h3>
+    <p>In your Supabase project:</p>
     <ol>
-      <li>Once the project is ready, look at the left sidebar and click <strong>"Project Settings"</strong> (gear icon)</li>
-      <li>In the left menu, click <strong>"API"</strong></li>
-      <li>You will see two important pieces of information:
-        <ul>
-          <li><strong>Project URL</strong> (looks like: <code>https://xxxxxxxxxxxx.supabase.co</code>)</li>
-          <li><strong>anon public key</strong> (a long random string starting with <code>eyJ...</code>)</li>
-        </ul>
-      </li>
-      <li><strong>Copy both of these and keep them handy</strong> — you will need them when deploying on Netlify</li>
+      <li>Go to <strong>Project Settings</strong> (gear icon) &gt; <strong>API</strong></li>
+      <li>Copy the <strong>Project URL</strong> (looks like <code>https://xxxxx.supabase.co</code>)</li>
+      <li>Copy the <strong>anon public key</strong> (starts with <code>eyJ...</code>)</li>
     </ol>
-    <div class="warning">
-      <strong>⚠️ Important:</strong> Copy the <strong>"anon public"</strong> key, NOT the "service_role" key. The service_role key is secret and should never be shared.
-    </div>
+    <p><strong>Save these - you will need them in Step 3.</strong></p>
   </div>
 
+  <h2>Step 2: Push Code to GitHub</h2>
   <div class="step">
-    <h3>Step 1.4 — Run the Database Schema (Create Tables)</h3>
-    <p>Now we need to create the tables (products, activity_logs) in your database.</p>
+    <h3>2.1 Create a GitHub Repository</h3>
     <ol>
-      <li>In the left sidebar, click <strong>"SQL Editor"</strong></li>
-      <li>Click the <strong>"New query"</strong> button</li>
-      <li>Open the file <code>supabase-schema.sql</code> from the project folder (inside <code>Portal web project</code>). You can open it with Notepad.</li>
-      <li>Copy the entire content of that file and paste it into the SQL Editor on Supabase</li>
-      <li>Click the <strong>"Run"</strong> button (▶) — it will create all the tables, indexes, and triggers automatically</li>
-      <li>You should see a green success message. If you see errors, copy the SQL and run again</li>
-    </ol>
-    <div class="success">
-      <strong>✅ Done!</strong> Your database is now ready. Let's move to GitHub.
-    </div>
-  </div>
-
-  <hr>
-
-  <!-- 4. GITHUB -->
-  <h2 id="github">4. Step 2: Create a GitHub Account & Push Code</h2>
-  <p>GitHub is like Google Drive for code. We will upload the project there so Netlify can read and deploy it.</p>
-
-  <div class="step">
-    <h3>Step 2.1 — Create a GitHub Account (if you don't have one)</h3>
-    <ol>
-      <li>Go to <a href="https://github.com" target="_blank">https://github.com</a></li>
-      <li>Click <strong>"Sign up"</strong> and enter your email, password, and a username</li>
-      <li>Verify your email by clicking the link GitHub sends you</li>
-      <li>Complete the simple setup questions (you can skip most of them)</li>
-    </ol>
-  </div>
-
-  <div class="step">
-    <h3>Step 2.2 — Create a New Repository</h3>
-    <ol>
-      <li>After logging in to GitHub, click the <strong>"+"</strong> icon in the top-right corner → <strong>"New repository"</strong></li>
-      <li>Give it a name: <code>nhq-inventory-portal</code></li>
-      <li>Keep it <strong>"Public"</strong> (or "Private" — both work fine with Netlify free plan)</li>
-      <li><strong>Do NOT</strong> check "Add a README file" or ".gitignore" or "license"</li>
+      <li>Go to <a href="https://github.com">https://github.com</a> and sign in</li>
+      <li>Click the <strong>"+"</strong> icon (top right) &gt; <strong>"New repository"</strong></li>
+      <li><strong>Repository name:</strong> nhq-inventory-portal</li>
+      <li>Keep it <strong>Public</strong> (or Private - both work)</li>
       <li>Click <strong>"Create repository"</strong></li>
     </ol>
   </div>
 
   <div class="step">
-    <h3>Step 2.3 — Download Git and Upload Your Code</h3>
-    <p>If Git is not already installed on your computer:</p>
-    <ol>
-      <li>Go to <a href="https://git-scm.com/downloads" target="_blank">https://git-scm.com/downloads</a></li>
-      <li>Download and install Git for Windows (click "Next" on all screens — default options are fine)</li>
-    </ol>
-    <p>Then, follow these steps to upload your code:</p>
-    <ol>
-      <li>Open the project folder on your desktop: <code>Portal web project</code></li>
-      <li><strong>Delete the <code>.env</code> file</strong> if it exists (it contains secret keys — we will add them directly on Netlify later)</li>
-      <li><strong>Delete the <code>node_modules</code> folder</strong> (we don't upload this — Netlify will install it automatically)</li>
-      <li>Right-click inside the folder (on empty space) and select <strong>"Git Bash Here"</strong> or <strong>"Open in Terminal"</strong></li>
-      <li>Type these commands one by one (press Enter after each line):</li>
-    </ol>
+    <h3>2.2 Push Your Code</h3>
+    <p>In your local project folder, open terminal/powershell and run:</p>
     <pre>
-git init
+git remote add origin https://github.com/YOUR_USERNAME/nhq-inventory-portal.git
+git branch -M main
 git add .
 git commit -m "Initial commit"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/nhq-inventory-portal.git
 git push -u origin main</pre>
-    <div class="note">
-      <strong>📝 Note:</strong> Replace <code>YOUR_USERNAME</code> with your actual GitHub username. The URL is the same as what you see on your GitHub repository page.
-    </div>
-    <p>When you run <code>git push</code>, GitHub will ask for your username and password. Use your GitHub username and a <strong>"Personal Access Token"</strong> as the password (not your regular password).</p>
-    <p><strong>How to create a Personal Access Token:</strong></p>
-    <ol>
-      <li>Go to <a href="https://github.com/settings/tokens" target="_blank">https://github.com/doc/settings/tokens</a></li>
-      <li>Click <strong>"Generate new token (classic)"</strong></li>
-      <li>Give it a name like "deploy-token"</li>
-      <li>Check the box <strong>"repo"</strong> (Full control of private repositories)</li>
-      <li>Scroll down and click <strong>"Generate token"</strong></li>
-      <li>Copy the token (it starts with <code>ghp_...</code>) and use it as your password when Git asks</li>
-    </ol>
-    <div class="success">
-      <strong>✅ Done!</strong> Your code is now on GitHub. Refresh your repository page in the browser to see all the files.
-    </div>
+    <p>Replace <code>YOUR_USERNAME</code> with your actual GitHub username.</p>
   </div>
 
-  <hr>
-
-  <!-- 5. NETLIFY -->
-  <h2 id="netlify">5. Step 3: Deploy on Netlify</h2>
-  <p>Netlify is the free hosting service that will run your website and make it accessible via a public URL.</p>
-
+  <h2>Step 3: Deploy on Netlify</h2>
   <div class="step">
-    <h3>Step 3.1 — Create a Netlify Account</h3>
+    <h3>3.1 Connect Netlify to GitHub</h3>
     <ol>
-      <li>Go to <a href="https://netlify.com" target="_blank">https://netlify.com</a></li>
-      <li>Click <strong>"Sign up"</strong> in the top-right corner</li>
-      <li>Click <strong>"GitHub"</strong> to sign up with your GitHub account (easiest method)</li>
-      <li>Authorize Netlify to access your GitHub — this lets Netlify see your repository</li>
+      <li>Go to <a href="https://app.netlify.com">https://app.netlify.com</a> and sign up / log in</li>
+      <li>Click <strong>"Add new site"</strong> &gt; <strong>"Import an existing project"</strong></li>
+      <li>Click <strong>"GitHub"</strong> and authorize Netlify to access your repos</li>
+      <li>Find and select <strong>"nhq-inventory-portal"</strong></li>
     </ol>
   </div>
 
   <div class="step">
-    <h3>Step 3.2 — Connect Your Repository</h3>
-    <ol>
-      <li>After logging in to Netlify, you will see a dashboard. Click the <strong>"Add new site"</strong> button → <strong>"Import an existing project"</strong></li>
-      <li>Click <strong>"GitHub"</strong> as the Git provider</li>
-      <li>Netlify will ask for permission to access your repositories — click <strong>"Configure Netlify on GitHub"</strong> and select the repository <code>nhq-inventory-portal</code></li>
-      <li>Find and click on your <code>nhq-inventory-portal</code> repository</li>
-    </ol>
-  </div>
-
-  <div class="step">
-    <h3>Step 3.3 — Configure Deployment Settings</h3>
-    <p>On the configuration page, Netlify will auto-detect most settings. Verify these are correct:</p>
+    <h3>3.2 Configure Build Settings</h3>
+    <p>The settings should auto-detect from <code>netlify.toml</code>. Verify they are:</p>
     <ul>
-      <li><strong>Branch to deploy:</strong> <code>main</code></li>
-      <li><strong>Build command:</strong> <code>npm run build</code> (should be filled automatically)</li>
-      <li><strong>Publish directory:</strong> <code>dist</code> (should be filled automatically)</li>
+      <li><strong>Build command:</strong> <code>npm run build</code></li>
+      <li><strong>Publish directory:</strong> <code>dist</code></li>
     </ul>
-    <p>Click <strong>"Deploy site"</strong> and wait for 1-2 minutes while Netlify builds your site.</p>
-    <div class="success">
-      <strong>🎉 Almost there!</strong> Your site is deployed but it's not connected to the database yet. Let's fix that next.
-    </div>
-  </div>
-
-  <hr>
-
-  <!-- 6. ENVIRONMENT VARIABLES -->
-  <h2 id="env">6. Step 4: Set Environment Variables (Connect to Database)</h2>
-  <p>Environment variables are like secret settings that tell your portal how to connect to the Supabase database.</p>
-
-  <div class="step">
-    <h3>Step 4.1 — Add Your Supabase Keys to Netlify</h3>
-    <ol>
-      <li>On Netlify, go to your site dashboard (you should be there after deployment)</li>
-      <li>Click <strong>"Site configuration"</strong> (or the settings tab)</li>
-      <li>In the left menu, click <strong>"Environment variables"</strong></li>
-      <li>Click <strong>"Add a variable"</strong> → <strong>"Add single variable"</strong> and add these two:</li>
-    </ol>
-
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Variable Name</th>
-            <th>Value (What to put)</th>
-            <th>Where to get it</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><code>VITE_SUPABASE_URL</code></td>
-            <td><code>https://xxxxxxxxxxxx.supabase.co</code></td>
-            <td>Supabase → Project Settings → API → Project URL</td>
-          </tr>
-          <tr>
-            <td><code>VITE_SUPABASE_ANON_KEY</code></td>
-            <td><code>eyJhbGciOiJIUzI1NiIsInR5cCI6Ik... (long string)</code></td>
-            <td>Supabase → Project Settings → API → anon public key</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <ol start="5">
-      <li>Click <strong>"Save"</strong> for each variable</li>
-    </ol>
-
-    <div class="warning">
-      <strong>⚠️ Important:</strong> Make sure there are no extra spaces around the values. Copy-paste exactly.
-    </div>
-  </div>
-
-  <hr>
-
-  <!-- 7. RE-DEPLOY -->
-  <h2 id="redeploy">7. Step 5: Re-deploy & Verify</h2>
-  <p>After adding the variables, we need to rebuild the site so it picks up the new settings.</p>
-
-  <div class="step">
-    <h3>Step 5.1 — Trigger a Re-deploy</h3>
-    <ol>
-      <li>Go to <strong>"Deploy"</strong> tab in your Netlify site dashboard</li>
-      <li>Click <strong>"Trigger deploy"</strong> → <strong>"Clear cache and deploy site"</strong></li>
-      <li>Wait for the build to finish (1-2 minutes). You will see "Published" in green when done.</li>
-    </ol>
+    <p>Click <strong>"Show advanced"</strong> and scroll to <strong>"Environment variables"</strong>.</p>
   </div>
 
   <div class="step">
-    <h3>Step 5.2 — Open Your Site</h3>
-    <ol>
-      <li>Click the generated URL at the top of the deploy page (looks like <code>https://random-name-12345.netlify.app</code>)</li>
-      <li>Your NHQ Inventory Portal should open!</li>
-      <li>Login with any of the demo accounts:
-        <ul>
-          <li><strong>Root:</strong> <code>manash@nhqbd.com</code> / <code>Man&Mond71</code></li>
-          <li><strong>Admin:</strong> <code>admin</code> / <code>Man@321%</code></li>
-          <li><strong>Guest:</strong> <code>nhq</code> / <code>Nhq@321%</code></li>
-        </ul>
-      </li>
-    </ol>
-    <div class="success">
-      <strong>🎉 Congratulations! Your portal is live!</strong> Share the URL with your office team.
-    </div>
+    <h3>3.3 Add Environment Variables</h3>
+    <p>Add these two variables:</p>
+    <ul>
+      <li><strong>Key:</strong> <code>VITE_SUPABASE_URL</code> → <strong>Value:</strong> Your Supabase Project URL</li>
+      <li><strong>Key:</strong> <code>VITE_SUPABASE_ANON_KEY</code> → <strong>Value:</strong> Your Supabase anon key</li>
+    </ul>
+    <p>Click <strong>"Deploy site"</strong> (button at the bottom).</p>
   </div>
 
+  <div class="warning">
+    <strong>Important:</strong> After deployment, Netlify will give you a URL like <code>https://random-name-12345.netlify.app</code>.
+    You can change this to a custom domain later under <strong>Site settings &gt; Domain management</strong>.
+  </div>
+
+  <h2>Step 4: Auto-Deploy on Future Git Pushes</h2>
   <div class="step">
-    <h3>Step 5.3 — Customize Your URL (Optional)</h3>
-    <p>You can change the random Netlify URL to something nicer:</p>
-    <ol>
-      <li>Go to <strong>"Site configuration"</strong> → <strong>"Site details"</strong></li>
-      <li>Click <strong>"Change site name"</strong></li>
-      <li>Enter something like <code>nhq-inventory</code> (if available)</li>
-      <li>Your new URL will be: <code>https://nhq-inventory.netlify.app</code></li>
-    </ol>
-    <p>To use your own domain (like <code>inventory.nhqbd.com</code>):</p>
-    <ol>
-      <li>Go to <strong>"Site configuration"</strong> → <strong>"Domain management"</strong></li>
-      <li>Click <strong>"Add custom domain"</strong> and follow the instructions</li>
-      <li>You will need to update your domain's DNS settings (contact your IT team or domain provider for help)</li>
-    </ol>
+    <p>Netlify automatically deploys whenever you push to the <code>main</code> branch. To update the site:</p>
+    <pre><code>git add .
+git commit -m "Your change description"
+git push origin main</code></pre>
+    <p>Netlify will automatically rebuild and deploy within 1-2 minutes.</p>
   </div>
 
-  <hr>
-
-  <!-- 8. HOW TO MAKE CHANGES -->
-  <h2 id="updates">8. How to Make Changes Later</h2>
-  <p>If you need to update the portal (fix bugs, add features, etc.), here's the simple process:</p>
-
+  <h2>Step 5: Login Credentials</h2>
   <div class="step">
-    <h3>Step 8.1 — Edit the Files</h3>
-    <p>Open the project folder on your computer and make changes to the code (e.g., edit <code>About.jsx</code> to change the About page content).</p>
+    <p>After deployment, go to your Netlify URL. Use these credentials:</p>
+    <ul>
+      <li><strong>Super User:</strong> <code>manash</code> / Password: <code>Man@123</code></li>
+    </ul>
+    <p>Log in as Super User first, then use <strong>Manage Users</strong> (from the user menu in top-right) to create Admin and Read-Only accounts.</p>
   </div>
 
-  <div class="step">
-    <h3>Step 8.2 — Push Changes to GitHub</h3>
-    <p>Right-click inside the project folder → <strong>"Git Bash Here"</strong> → Run:</p>
-    <pre>
-git add .
-git commit -m "Describe what you changed"
-git push</pre>
+  <h2>Troubleshooting</h2>
+  <div class="warning">
+    <h3>Site shows blank page / Loading...</h3>
+    <p>Check if environment variables are set correctly in Netlify. The app needs <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code>.</p>
   </div>
-
-  <div class="step">
-    <h3>Step 8.3 — Netlify Auto-Deploys</h3>
-    <p>That's it! Netlify automatically detects the new code on GitHub and re-deploys your site within 1-2 minutes. No manual steps needed.</p>
-    <div class="success">
-      <strong>✅ Live in 2 minutes!</strong> Just refresh your portal URL to see the changes.
-    </div>
+  <div class="warning">
+    <h3>Login says "Invalid credentials"</h3>
+    <p>Make sure you ran the SQL schema in Supabase SQL Editor. The seed user <code>manash</code> with password <code>Man@123</code> must be inserted.</p>
   </div>
-
-  <hr>
-
-  <!-- 9. TROUBLESHOOTING -->
-  <h2 id="troubleshoot">9. Troubleshooting (Common Problems)</h2>
-
-  <div class="step">
-    <h3>Problem: White screen / Blank page after deployment</h3>
-    <p><strong>Cause:</strong> Environment variables not set or incorrect.</p>
-    <p><strong>Fix:</strong> Go back to <strong>Step 4</strong> and double-check that you added both <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> correctly in Netlify's environment variables. Then re-deploy.</p>
+  <div class="warning">
+    <h3>Database connection error</h3>
+    <p>Check if your Supabase project allows connections from all IPs. Go to <strong>Supabase &gt; Authentication &gt; Settings &gt; RLS</strong> - make sure policies are enabled.</p>
   </div>
-
-  <div class="step">
-    <h3>Problem: "Failed to fetch" or "Network error" in the portal</h3>
-    <p><strong>Cause:</strong> Supabase database is not set up or not connected.</p>
-    <p><strong>Fix:</strong>
-    <ol>
-      <li>Go to Supabase → SQL Editor and run the <code>supabase-schema.sql</code> file again</li>
-      <li>Make sure the environment variables in Netlify match exactly what's in Supabase → Settings → API</li>
-    </ol></p>
-  </div>
-
-  <div class="step">
-    <h3>Problem: Login says "Invalid credentials"</h3>
-    <p><strong>Cause:</strong> The credentials are hardcoded in the project — this is by design for this internal tool.</p>
-    <p><strong>Fix:</strong> Use the exact demo credentials mentioned in the login page:
-      <ul>
-        <li>Root: <code>manash@nhqbd.com</code> / <code>Man&Mond71</code></li>
-        <li>Admin: <code>admin</code> / <code>Man@321%</code></li>
-        <li>Guest: <code>nhq</code> / <code>Nhq@321%</code></li>
-      </ul>
-    </p>
-  </div>
-
-  <div class="step">
-    <h3>Problem: "Account locked" message</h3>
-    <p><strong>Cause:</strong> You entered wrong password 3 times.</p>
-    <p><strong>Fix:</strong> Wait 10 minutes for the lock to expire. The login page shows a countdown timer.</p>
-  </div>
-
-  <div class="step">
-    <h3>Problem: "Email or token has expired" error when pushing to GitHub</h3>
-    <p><strong>Cause:</strong> Your Personal Access Token has expired.</p>
-    <p><strong>Fix:</strong> Go to <a href="https://github.com/settings/tokens" target="_blank">GitHub Settings → Tokens</a>, generate a new token, and use it as the password.</p>
-  </div>
-
-  <div class="step">
-    <h3>Problem: Build fails on Netlify with red error</h3>
-    <p><strong>Cause:</strong> Usually a missing file or code error.</p>
-    <p><strong>Fix:</strong>
-    <ol>
-      <li>Click on the failed deploy to see the build log (the error message is usually at the bottom)</li>
-      <li>If it says "npm ERR!" — there might be a missing package. Make sure <code>node_modules</code> is not in the <code>.gitignore</code> file</li>
-      <li>Fix the error in your local code, then <code>git add . && git commit -m "fix" && git push</code></li>
-      <li>Netlify will automatically rebuild</li>
-    </ol></p>
-  </div>
-
-  <div class="step">
-    <h3>Problem: Images not showing</h3>
-    <p><strong>Cause:</strong> We switched from image upload to image URL. The image URLs need to be publicly accessible.</p>
-    <p><strong>Fix:</strong> When adding a product, provide a direct link to an image (e.g., from Google Drive, Imgur, or any public image hosting). Make sure the URL starts with <code>https://</code>.</p>
-  </div>
-
-  <hr>
-
-  <div class="success" style="text-align: center; padding: 24px;">
-    <h3 style="margin: 0 0 8px; color: #38a169;">🚀 Your Portal is Ready!</h3>
-    <p style="margin: 0; font-size: 1rem;">If you face any issues, contact the developer:<br>
-    <strong>Manash Kumar Mondal</strong> — <a href="mailto:manash@nhqbd.com">manash@nhqbd.com</a> — 01332814434</p>
-  </div>
-
-  <div class="footer">
-    NHQ Distributions Pvt. Ltd. — Inventory Management Portal — Deployment Guide v1.0
-  </div>
-
-</div>
 </body>
 </html>

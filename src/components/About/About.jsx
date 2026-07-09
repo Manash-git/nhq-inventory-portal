@@ -25,9 +25,9 @@ export default function About() {
             inventory levels, product details, and historical activity logs.
           </p>
           <p>
-            The system supports role-based access control, ensuring that only authorized personnel
-            can make changes, while maintaining a complete audit trail of all actions performed
-            on the inventory.
+            The system supports role-based access control with three tiers: Super User, Admin,
+            and Read-Only, ensuring that only authorized personnel can make changes while
+            maintaining a complete audit trail of all actions.
           </p>
         </div>
 
@@ -49,7 +49,7 @@ export default function About() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              Role-based access control (Root, Admin, Read-only)
+              Role-based access control (Super User, Admin, Read-Only)
             </li>
             <li>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2">
@@ -88,7 +88,7 @@ export default function About() {
           <div className="about-faq">
             <div className="faq-item">
               <h4>How do I add a new product?</h4>
-              <p>Navigate to the Home page and click the "Add Product" button. Fill in the required fields including Product Description, Part Number, Category, and Quantity. You can also add an image URL.</p>
+              <p>Navigate to the Home page and click the "Add Product" button. Fill in the required fields including Product Description, Part Number, Category, and Quantity. Image URL is optional.</p>
             </div>
             <div className="faq-item">
               <h4>Can I recover a deleted product?</h4>
@@ -96,15 +96,15 @@ export default function About() {
             </div>
             <div className="faq-item">
               <h4>What is the difference between users?</h4>
-              <p><strong>Root</strong> has full access including password resets. <strong>Admin</strong> can add, edit, delete, and export. <strong>NHQ</strong> users can only view the inventory.</p>
+              <p><strong>Super User</strong> has full access including user management. <strong>Admin</strong> can add, edit, delete, archive, and export. <strong>Read-Only</strong> users can only view the inventory.</p>
             </div>
             <div className="faq-item">
               <h4>How do I export the inventory?</h4>
-              <p>Root and Admin users will see an "Export" button on the Home page. Click it to download the current inventory as an Excel file.</p>
+              <p>Super User and Admin users will see an "Export" button on the Home page. Click it to download the current inventory as an Excel file.</p>
             </div>
             <div className="faq-item">
               <h4>How secure is my data?</h4>
-              <p>The portal uses Supabase for backend services with Row Level Security. Passwords are hashed, and the account locks after 3 failed login attempts for 10 minutes.</p>
+              <p>The portal uses Supabase for backend services with Row Level Security. Passwords are stored securely, and accounts lock after 3 failed login attempts for 10 minutes.</p>
             </div>
           </div>
         </div>
@@ -130,12 +130,6 @@ export default function About() {
                     <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
                   </svg>
                   manash@nhqbd.com
-                </a>
-                <a href="mailto:emailatmanash@nhqbd.com" className="developer-link">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
-                  </svg>
-                  emailatmanash@nhqbd.com
                 </a>
                 <span className="developer-link">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
