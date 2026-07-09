@@ -13,6 +13,33 @@ function generateTabId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
 }
 
+function createChannel(name) {
+  if (typeof BroadcastChannel !== 'undefined') {
+    return new BroadcastChannel(name)
+  }
+  const listeners = new Set()
+  const prefix = '__bc_' + name + '_'
+  const handler = (e) => {
+    if (e.key && e.key.startsWith(prefix)) {
+      try { listeners.forEach(fn => fn({ data: JSON.parse(e.newValue) })) } catch {}
+    }
+  }
+  window.addEventListener('storage', handler)
+  return {
+    postMessage: (data) => {
+      const key = prefix + Date.now() + '_' + Math.random().toString(36).slice(2)
+      localStorage.setItem(key, JSON.stringify(data))
+      localStorage.removeItem(key)
+    },
+    addEventListener: (_, fn) => listeners.add(fn),
+    removeEventListener: (_, fn) => listeners.delete(fn),
+    close: () => {
+      window.removeEventListener('storage', handler)
+      listeners.clear()
+    }
+  }
+}
+
 export function SessionProvider({ children }) {
   const { user, logout } = useAuth()
   const { addToast } = useNotification()
@@ -53,7 +80,7 @@ export function SessionProvider({ children }) {
     warned.current = false
     setSessionExpired(false)
 
-    const bc = new BroadcastChannel('nhq-session')
+    const bc = createChannel('nhq-session')
     channel.current = bc
 
     const tabs = new Set()
@@ -61,7 +88,7 @@ export function SessionProvider({ children }) {
 
     bc.postMessage({ type: 'TAB_OPEN', id: myId })
 
-    bc.onmessage = (e) => {
+    bc.addEventListener('message', (e) => {
       const { type, id, data } = e.data
       if (type === 'TAB_OPEN' || type === 'HEARTBEAT') {
         tabs.add(id)
@@ -73,7 +100,7 @@ export function SessionProvider({ children }) {
       if (type === 'SESSION_GONE') {
         doLogout('Your session has expired. Please log in again.')
       }
-    }
+    })
 
     // Set expiry from localStorage or create new
     let expiry = parseInt(localStorage.getItem('nhq-session-expiry'), 10)
