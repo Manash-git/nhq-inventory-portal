@@ -182,6 +182,74 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Function to change own password (bypass RLS)
+CREATE OR REPLACE FUNCTION change_own_password(
+  p_user_id UUID,
+  p_current_password TEXT,
+  p_new_password TEXT
+) RETURNS BOOLEAN AS $$
+DECLARE
+  v_stored TEXT;
+BEGIN
+  SELECT password INTO v_stored FROM users WHERE id = p_user_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'User not found.';
+  END IF;
+  IF v_stored != p_current_password THEN
+    RAISE EXCEPTION 'Current password is incorrect.';
+  END IF;
+  UPDATE users SET password = p_new_password, last_password_change = now()
+  WHERE id = p_user_id;
+  RETURN TRUE;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to reset any user's password (super user only, bypass RLS)
+CREATE OR REPLACE FUNCTION reset_user_password(
+  p_admin_id UUID,
+  p_target_user_id UUID,
+  p_new_password TEXT
+) RETURNS BOOLEAN AS $$
+DECLARE
+  v_admin_role TEXT;
+BEGIN
+  SELECT role INTO v_admin_role FROM users WHERE id = p_admin_id;
+  IF NOT FOUND OR v_admin_role != 'super_user' THEN
+    RAISE EXCEPTION 'Unauthorized.';
+  END IF;
+  UPDATE users SET password = p_new_password, last_password_change = now(),
+    failed_attempts = 0, locked_until = NULL
+  WHERE id = p_target_user_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Target user not found.';
+  END IF;
+  RETURN TRUE;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to deactivate a user (super user only, bypass RLS)
+CREATE OR REPLACE FUNCTION deactivate_user(
+  p_admin_id UUID,
+  p_target_user_id UUID
+) RETURNS BOOLEAN AS $$
+DECLARE
+  v_admin_role TEXT;
+BEGIN
+  SELECT role INTO v_admin_role FROM users WHERE id = p_admin_id;
+  IF NOT FOUND OR v_admin_role != 'super_user' THEN
+    RAISE EXCEPTION 'Unauthorized.';
+  END IF;
+  IF p_admin_id = p_target_user_id THEN
+    RAISE EXCEPTION 'Cannot delete your own account.';
+  END IF;
+  UPDATE users SET is_active = false WHERE id = p_target_user_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Target user not found.';
+  END IF;
+  RETURN TRUE;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- Function to validate and update login attempts
 CREATE OR REPLACE FUNCTION validate_login(p_username TEXT, p_password TEXT)
 RETURNS TABLE(user_id UUID, display_name TEXT, role TEXT, is_locked BOOLEAN, remaining_attempts INT) AS $$

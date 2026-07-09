@@ -156,26 +156,13 @@ export function AuthProvider({ children }) {
   const changePassword = useCallback(async (currentPassword, newPassword) => {
     if (!user) throw new Error('Not authenticated.')
 
-    const { data: dbUser, error } = await supabase
-      .from('users')
-      .select('password')
-      .eq('id', user.id)
-      .single()
+    const { error: rpcError } = await supabase.rpc('change_own_password', {
+      p_user_id: user.id,
+      p_current_password: currentPassword,
+      p_new_password: newPassword
+    })
 
-    if (error || !dbUser) throw new Error('User not found.')
-    if (dbUser.password !== currentPassword) throw new Error('Current password is incorrect.')
-
-    const { data: updated, error: updateError } = await supabase
-      .from('users')
-      .update({
-        password: newPassword,
-        last_password_change: new Date().toISOString()
-      })
-      .eq('id', user.id)
-      .select()
-
-    if (updateError) throw updateError
-    if (!updated || updated.length === 0) throw new Error('Failed to update password. Try again.')
+    if (rpcError) throw new Error(rpcError.message)
 
     await supabase.from('activity_logs').insert({
       product_id: null,
@@ -237,14 +224,12 @@ export function AuthProvider({ children }) {
 
     if (!targetUser) throw new Error('User not found.')
 
-    const { data: deleted, error } = await supabase
-      .from('users')
-      .update({ is_active: false })
-      .eq('id', userId)
-      .select()
+    const { error: rpcError } = await supabase.rpc('deactivate_user', {
+      p_admin_id: user.id,
+      p_target_user_id: userId
+    })
 
-    if (error) throw error
-    if (!deleted || deleted.length === 0) throw new Error('User not found.')
+    if (rpcError) throw new Error(rpcError.message)
 
     await supabase.from('activity_logs').insert({
       product_id: null,
@@ -269,19 +254,13 @@ export function AuthProvider({ children }) {
 
     if (!targetUser) throw new Error('User not found.')
 
-    const { data: updated, error } = await supabase
-      .from('users')
-      .update({
-        password: newPassword,
-        last_password_change: new Date().toISOString(),
-        failed_attempts: 0,
-        locked_until: null
-      })
-      .eq('id', userId)
-      .select()
+    const { error: rpcError } = await supabase.rpc('reset_user_password', {
+      p_admin_id: user.id,
+      p_target_user_id: userId,
+      p_new_password: newPassword
+    })
 
-    if (error) throw error
-    if (!updated || updated.length === 0) throw new Error('User not found.')
+    if (rpcError) throw new Error(rpcError.message)
 
     await supabase.from('activity_logs').insert({
       product_id: null,
