@@ -165,15 +165,17 @@ export function AuthProvider({ children }) {
     if (error || !dbUser) throw new Error('User not found.')
     if (dbUser.password !== currentPassword) throw new Error('Current password is incorrect.')
 
-    const { error: updateError } = await supabase
+    const { data: updated, error: updateError } = await supabase
       .from('users')
       .update({
         password: newPassword,
         last_password_change: new Date().toISOString()
       })
       .eq('id', user.id)
+      .select()
 
     if (updateError) throw updateError
+    if (!updated || updated.length === 0) throw new Error('Failed to update password. Try again.')
 
     await supabase.from('activity_logs').insert({
       product_id: null,
@@ -235,12 +237,14 @@ export function AuthProvider({ children }) {
 
     if (!targetUser) throw new Error('User not found.')
 
-    const { error } = await supabase
+    const { data: deleted, error } = await supabase
       .from('users')
       .update({ is_active: false })
       .eq('id', userId)
+      .select()
 
     if (error) throw error
+    if (!deleted || deleted.length === 0) throw new Error('User not found.')
 
     await supabase.from('activity_logs').insert({
       product_id: null,
@@ -265,7 +269,7 @@ export function AuthProvider({ children }) {
 
     if (!targetUser) throw new Error('User not found.')
 
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from('users')
       .update({
         password: newPassword,
@@ -274,8 +278,10 @@ export function AuthProvider({ children }) {
         locked_until: null
       })
       .eq('id', userId)
+      .select()
 
     if (error) throw error
+    if (!updated || updated.length === 0) throw new Error('User not found.')
 
     await supabase.from('activity_logs').insert({
       product_id: null,

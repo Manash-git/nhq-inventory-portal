@@ -95,6 +95,10 @@ CREATE POLICY "Super user can update users" ON users
     EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'super_user')
   );
 
+CREATE POLICY "Users can update own record" ON users
+  FOR UPDATE USING (id = auth.uid())
+  WITH CHECK (id = auth.uid());
+
 -- Products table policies
 CREATE POLICY "All authenticated users can read products" ON products
   FOR SELECT USING (auth.role() = 'authenticated');
