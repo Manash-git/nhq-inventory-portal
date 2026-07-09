@@ -6,8 +6,14 @@ import { formatDate, formatDateTime } from '../../utils/helpers'
 import ContributionGraph from './ContributionGraph'
 import './History.css'
 
+const ACTION_FILTERS = ['add', 'delete', 'edit', 'archive', 'login', 'logout', 'quantity_change', 'export']
+const ACTION_LABELS = {
+  add: 'Add', delete: 'Delete', edit: 'Edit', archive: 'Archive',
+  login: 'Login', logout: 'Logout', quantity_change: 'Qty Change', export: 'Export'
+}
+
 export default function History() {
-  const { user, canViewAllLogs, canViewAdminLogs } = useAuth()
+  const { user, canViewAllLogs, canViewAdminLogs, isSuperUser } = useAuth()
   const { addToast } = useNotification()
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem('nhq-history-tab') || 'activity')
   const switchTab = (tab) => { localStorage.setItem('nhq-history-tab', tab); setActiveTab(tab) }
@@ -15,6 +21,7 @@ export default function History() {
   const [archived, setArchived] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [actionFilter, setActionFilter] = useState(null)
   const [archiveSearch, setArchiveSearch] = useState('')
   const [archiveSort, setArchiveSort] = useState('product_description')
   const [archiveSortDir, setArchiveSortDir] = useState('asc')
@@ -113,6 +120,7 @@ export default function History() {
   }, [fetchLogs, fetchArchived])
 
   const filteredLogs = logs.filter(l => {
+    if (actionFilter && l.action !== actionFilter) return false
     const q = search.toLowerCase()
     return (
       l.description?.toLowerCase().includes(q) ||
@@ -277,18 +285,35 @@ export default function History() {
         <>
           {activeTab === 'activity' && (
             <div className="card" style={{ padding: 0 }}>
-              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 16 }}>
-                <div className="search-input-wrapper">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                  </svg>
-                  <input type="text" className="form-input" placeholder="Search logs..."
-                    value={search} onChange={e => setSearch(e.target.value)}
-                    style={{ flex: 1, maxWidth: 400, paddingLeft: 36 }} />
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div className="search-input-wrapper">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input type="text" className="form-input" placeholder="Search logs..."
+                      value={search} onChange={e => setSearch(e.target.value)}
+                      style={{ flex: 1, maxWidth: 400, paddingLeft: 36 }} />
+                  </div>
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                    {filteredLogs.length} entries
+                  </span>
                 </div>
-                <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-                  {filteredLogs.length} entries
-                </span>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  <button
+                    className={`btn btn-sm ${!actionFilter ? 'btn-primary' : 'btn-outline'}`}
+                    onClick={() => setActionFilter(null)}
+                    style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                  >All</button>
+                  {ACTION_FILTERS.map(a => (
+                    <button
+                      key={a}
+                      className={`btn btn-sm ${actionFilter === a ? 'btn-primary' : 'btn-outline'}`}
+                      onClick={() => setActionFilter(actionFilter === a ? null : a)}
+                      style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                    >{ACTION_LABELS[a]}</button>
+                  ))}
+                </div>
               </div>
               {filteredLogs.length === 0 ? (
                 <div className="empty-state" style={{ padding: '40px 20px' }}>

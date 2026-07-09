@@ -9,10 +9,7 @@ import PartQuantityChart from './PartQuantityChart'
 import * as XLSX from 'xlsx'
 import './Home.css'
 
-const CATEGORIES = [
-  'NetBackup Appliance', 'Flex Appliance', 'Other / Shared',
-  'Server', 'Storage', 'Networking', 'Accessories', 'Other'
-]
+const CATEGORIES = ['Backup', 'System', 'Networking', 'Data Center']
 
 const QUANTITY_OPTIONS = [1, 2, 3, 4, 5, 10, 15, 20, 25, 30, 40, 50, 75, 100]
 
@@ -101,8 +98,7 @@ export default function Home() {
     return (
       p.product_description?.toLowerCase().includes(q) ||
       p.part_number?.toLowerCase().includes(q) ||
-      p.category?.toLowerCase().includes(q) ||
-      String(p.serial).includes(q)
+      p.category?.toLowerCase().includes(q)
     )
   })
 
@@ -128,7 +124,7 @@ export default function Home() {
   const handleAdd = async (e) => {
     e.preventDefault()
     if (!formData.product_description || !formData.part_number || !formData.category) {
-      addToast('Please fill all required fields.', 'error')
+      addToast('Please fill Hardware Description, Part Number and Category.', 'error')
       return
     }
     try {
@@ -148,7 +144,7 @@ export default function Home() {
 
       await logActivity(data.id, 'add', `Added "${data.product_description}" (${data.part_number})`)
 
-      addToast('Product added successfully!', 'success')
+      addToast('Hardware added successfully!', 'success')
       setShowAddModal(false)
       resetForm()
       fetchProducts()
@@ -327,7 +323,7 @@ export default function Home() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Inventory</h1>
-          <p className="page-subtitle">{filtered.length} product(s) in stock</p>
+          <p className="page-subtitle">{filtered.length} hardware(s) in stock</p>
         </div>
         <div className="home-actions">
           <div className="search-input-wrapper">
@@ -356,7 +352,7 @@ export default function Home() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
               </svg>
-              Add Product
+              New Hardware
             </button>
           )}
         </div>
@@ -373,17 +369,17 @@ export default function Home() {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
               </svg>
-              <h3>No products found</h3>
-              <p>{search ? 'Try a different search term.' : 'Add your first product to get started.'}</p>
+              <h3>No hardware found</h3>
+              <p>{search ? 'Try a different search term.' : 'Add your first hardware to get started.'}</p>
             </div>
           ) : (
             <div className="table-container">
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th style={{ width: 40 }}>#</th>
+                    <th style={{ width: 40 }}>Serial</th>
                     <th onClick={() => handleSort('product_description')} style={{ cursor: 'pointer' }}>
-                      Product Description <SortIcon col="product_description" />
+                      Hardware Description <SortIcon col="product_description" />
                     </th>
                     <th onClick={() => handleSort('part_number')} style={{ cursor: 'pointer' }}>
                       Part Number <SortIcon col="part_number" />
@@ -486,11 +482,11 @@ export default function Home() {
       </div>
 
       {/* Add Modal */}
-      <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Add New Product">
+      <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="New Hardware">
         <form onSubmit={handleAdd}>
           <div className="form-group">
-            <label className="form-label">Product Description *</label>
-            <input className="form-input" placeholder="Enter product description"
+            <label className="form-label">Hardware Description *</label>
+            <input className="form-input" placeholder="Enter hardware description"
               value={formData.product_description}
               onChange={e => setFormData(p => ({ ...p, product_description: e.target.value }))} />
           </div>
@@ -537,28 +533,28 @@ export default function Home() {
           </div>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
             <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)}>Cancel</button>
-            <button type="submit" className="btn btn-primary">Add Product</button>
+            <button type="submit" className="btn btn-primary">Add Hardware</button>
           </div>
         </form>
       </Modal>
 
       {/* Edit Modal */}
-      <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Edit Product">
+      <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Edit Hardware">
         <form onSubmit={handleEdit}>
           <div className="form-group">
-            <label className="form-label">Product Description *</label>
-            <input className="form-input" placeholder="Enter product description"
+            <label className="form-label">Hardware Description</label>
+            <input className="form-input" placeholder="Enter hardware description"
               value={formData.product_description}
               onChange={e => setFormData(p => ({ ...p, product_description: e.target.value }))} />
           </div>
           <div className="form-group">
-            <label className="form-label">Part Number *</label>
+            <label className="form-label">Part Number</label>
             <input className="form-input" placeholder="Enter part number"
               value={formData.part_number}
               onChange={e => setFormData(p => ({ ...p, part_number: e.target.value }))} />
           </div>
           <div className="form-group">
-            <label className="form-label">Category *</label>
+            <label className="form-label">Category</label>
             <select className="form-input" value={formData.category}
               onChange={e => setFormData(p => ({ ...p, category: e.target.value }))}>
               {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}

@@ -179,26 +179,15 @@ export function AuthProvider({ children }) {
   const createUser = useCallback(async (username, password, displayName, role) => {
     if (!user || user.role !== ROLES.SUPER_USER) throw new Error('Unauthorized.')
 
-    const { data: existing } = await supabase
-      .from('users')
-      .select('id')
-      .eq('username', username.toLowerCase())
-      .limit(1)
+    const { data: newUser, error: rpcError } = await supabase.rpc('create_user', {
+      p_admin_id: user.id,
+      p_username: username,
+      p_password: password,
+      p_display_name: displayName,
+      p_role: role
+    })
 
-    if (existing && existing.length > 0) throw new Error('Username already exists.')
-
-    const { data: newUser, error } = await supabase
-      .from('users')
-      .insert({
-        username: username.toLowerCase(),
-        password: password,
-        display_name: displayName,
-        role: role
-      })
-      .select()
-      .single()
-
-    if (error) throw error
+    if (rpcError) throw new Error(rpcError.message)
 
     await supabase.from('activity_logs').insert({
       product_id: null,
@@ -277,12 +266,11 @@ export function AuthProvider({ children }) {
   const getUsers = useCallback(async () => {
     if (!user || user.role !== ROLES.SUPER_USER) throw new Error('Unauthorized.')
 
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, username, display_name, role, is_active, created_at, last_password_change, failed_attempts, locked_until')
-      .order('created_at', { ascending: true })
+    const { data, error: rpcError } = await supabase.rpc('get_all_users', {
+      p_admin_id: user.id
+    })
 
-    if (error) throw error
+    if (rpcError) throw new Error(rpcError.message)
     return data || []
   }, [user])
 

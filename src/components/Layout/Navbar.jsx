@@ -23,7 +23,7 @@ export default function Navbar() {
   const [pwdForm, setPwdForm] = useState({ current: '', newPwd: '', confirm: '' })
 
   // Create user form
-  const [createForm, setCreateForm] = useState({ username: '', password: '', displayName: '', role: 'read_only' })
+  const [createForm, setCreateForm] = useState({ username: '', password: '', role: 'read_only' })
 
   // Reset password form
   const [resetUserId, setResetUserId] = useState(null)
@@ -83,7 +83,7 @@ export default function Navbar() {
   }
 
   const handleCreateUser = async () => {
-    if (!createForm.username || !createForm.password || !createForm.displayName) {
+    if (!createForm.username || !createForm.password) {
       addToast('Please fill all fields.', 'error')
       return
     }
@@ -92,10 +92,10 @@ export default function Navbar() {
       return
     }
     try {
-      await createUser(createForm.username, createForm.password, createForm.displayName, createForm.role)
+      await createUser(createForm.username, createForm.password, createForm.username, createForm.role)
       addToast(`User "${createForm.username}" created!`, 'success')
       setShowCreateUserModal(false)
-      setCreateForm({ username: '', password: '', displayName: '', role: 'read_only' })
+      setCreateForm({ username: '', password: '', role: 'read_only' })
       loadUsers()
     } catch (err) {
       addToast(err.message, 'error')
@@ -395,11 +395,6 @@ export default function Navbar() {
           <label className="form-label">Username</label>
           <input className="form-input" placeholder="Enter username"
             value={createForm.username} onChange={e => setCreateForm(p => ({ ...p, username: e.target.value }))} />
-        </div>
-        <div className="form-group">
-          <label className="form-label">Display Name</label>
-          <input className="form-input" placeholder="Enter display name"
-            value={createForm.displayName} onChange={e => setCreateForm(p => ({ ...p, displayName: e.target.value }))} />
         </div>
         <div className="form-group">
           <label className="form-label">Password</label>

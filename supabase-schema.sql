@@ -81,6 +81,23 @@ ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies for clean re-run
+DROP POLICY IF EXISTS "Users can read own data" ON users;
+DROP POLICY IF EXISTS "Super user can insert users" ON users;
+DROP POLICY IF EXISTS "Super user can update users" ON users;
+DROP POLICY IF EXISTS "Users can update own record" ON users;
+DROP POLICY IF EXISTS "All authenticated users can read products" ON products;
+DROP POLICY IF EXISTS "Super user and admin can insert products" ON products;
+DROP POLICY IF EXISTS "Super user and admin can update products" ON products;
+DROP POLICY IF EXISTS "Super user and admin can delete products" ON products;
+DROP POLICY IF EXISTS "Super user can read all logs" ON activity_logs;
+DROP POLICY IF EXISTS "Admin can read admin/read_only logs" ON activity_logs;
+DROP POLICY IF EXISTS "Read only can read own logs" ON activity_logs;
+DROP POLICY IF EXISTS "Authenticated users can insert logs" ON activity_logs;
+DROP POLICY IF EXISTS "Users can read own sessions" ON sessions;
+DROP POLICY IF EXISTS "Users can insert own sessions" ON sessions;
+DROP POLICY IF EXISTS "Users can update own sessions" ON sessions;
+
 -- Users table policies
 CREATE POLICY "Users can read own data" ON users
   FOR SELECT USING (auth.uid() = id OR role = 'super_user');
@@ -160,6 +177,38 @@ ON CONFLICT (username) DO NOTHING;
 -- HELPER FUNCTIONS
 -- ============================================
 
+-- Function to create a new user (super user only, bypass RLS)
+CREATE OR REPLACE FUNCTION create_user(
+  p_admin_id UUID,
+  p_username TEXT,
+  p_password TEXT,
+  p_display_name TEXT,
+  p_role TEXT
+) RETURNS JSONB AS $$
+DECLARE
+  v_admin_role TEXT;
+  v_new_user users%ROWTYPE;
+BEGIN
+  SELECT role INTO v_admin_role FROM users WHERE id = p_admin_id;
+  IF NOT FOUND OR v_admin_role != 'super_user' THEN
+    RAISE EXCEPTION 'Unauthorized.';
+  END IF;
+  IF EXISTS (SELECT 1 FROM users WHERE username = lower(p_username)) THEN
+    RAISE EXCEPTION 'Username already exists.';
+  END IF;
+  INSERT INTO users (username, password, display_name, role)
+  VALUES (lower(p_username), p_password, p_display_name, p_role)
+  RETURNING * INTO v_new_user;
+  RETURN jsonb_build_object(
+    'id', v_new_user.id,
+    'username', v_new_user.username,
+    'display_name', v_new_user.display_name,
+    'role', v_new_user.role,
+    'created_at', v_new_user.created_at
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- Function to log activity
 CREATE OR REPLACE FUNCTION log_activity(
   p_product_id UUID,
@@ -224,6 +273,32 @@ BEGIN
     RAISE EXCEPTION 'Target user not found.';
   END IF;
   RETURN TRUE;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to get all users (super user only, bypass RLS)
+CREATE OR REPLACE FUNCTION get_all_users(p_admin_id UUID)
+RETURNS JSONB AS $$
+DECLARE
+  v_admin_role TEXT;
+  v_result JSONB;
+BEGIN
+  SELECT role INTO v_admin_role FROM users WHERE id = p_admin_id;
+  IF NOT FOUND OR v_admin_role != 'super_user' THEN
+    RAISE EXCEPTION 'Unauthorized.';
+  END IF;
+  SELECT jsonb_agg(jsonb_build_object(
+    'id', id,
+    'username', username,
+    'display_name', display_name,
+    'role', role,
+    'is_active', is_active,
+    'created_at', created_at,
+    'last_password_change', last_password_change,
+    'failed_attempts', failed_attempts,
+    'locked_until', locked_until
+  ) ORDER BY created_at ASC) INTO v_result FROM users;
+  RETURN COALESCE(v_result, '[]'::jsonb);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
