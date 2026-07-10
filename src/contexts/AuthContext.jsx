@@ -97,23 +97,29 @@ export function AuthProvider({ children }) {
   }, [])
 
   const logout = useCallback((msg) => {
-    if (sessionToken) {
-      supabase.rpc('logout_user', { p_token: sessionToken }).catch(() => {})
-    }
+    // Fire-and-forget server-side invalidation
+    try {
+      const token = localStorage.getItem('nhq-session-token')
+      if (token) supabase.rpc('logout_user', { p_token: token }).catch(() => {})
+    } catch {}
 
-    localStorage.removeItem('nhq-current-user')
-    localStorage.removeItem('nhq-session-token')
-    localStorage.removeItem('nhq-session-expiry')
-    localStorage.removeItem('nhq-session-last-tab-time')
-    localStorage.removeItem('nhq-user-permissions')
-    localStorage.removeItem('nhq-session-last-activity')
+    // Wipe ALL auth-related storage
+    ;[
+      'nhq-current-user', 'nhq-session-token', 'nhq-session-expiry',
+      'nhq-session-last-tab-time', 'nhq-user-permissions',
+      'nhq-session-last-activity'
+    ].forEach(k => {
+      localStorage.removeItem(k)
+      sessionStorage.removeItem(k)
+    })
 
     if (msg) {
-      sessionStorage.setItem('nhq-logout-message', msg)
+      try { sessionStorage.setItem('nhq-logout-message', msg) } catch {}
     }
 
-    window.location.href = '/login'
-  }, [sessionToken])
+    // Force full page redirect — replaces history so Back button can't restore session
+    try { window.location.replace('/login') } catch {}
+  }, [])
 
   const userCan = useCallback((permissionCode) => {
     return permissions.includes(permissionCode)
