@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react'
+import { supabase } from '../utils/supabase'
 import { useAuth } from './AuthContext'
 import { useNotification } from './NotificationContext'
 
@@ -6,6 +7,7 @@ const SESSION_DURATION = 60 * 60 * 1000
 const WARNING_BEFORE = 5 * 60 * 1000
 const GRACE_PERIOD = 5 * 60 * 1000
 const HEARTBEAT_INTERVAL = 5000
+const VALIDATE_INTERVAL = 30000
 
 const SessionContext = createContext()
 
@@ -89,7 +91,7 @@ export function SessionProvider({ children }) {
     bc.postMessage({ type: 'TAB_OPEN', id: myId })
 
     bc.addEventListener('message', (e) => {
-      const { type, id, data } = e.data
+      const { type, id } = e.data
       if (type === 'TAB_OPEN' || type === 'HEARTBEAT') {
         tabs.add(id)
         localStorage.removeItem('nhq-session-last-tab-time')
@@ -102,14 +104,14 @@ export function SessionProvider({ children }) {
       }
     })
 
-    // Set expiry from localStorage or create new
+    // Read expiry from login (set by AuthContext) — never extend it
     let expiry = parseInt(localStorage.getItem('nhq-session-expiry'), 10)
     if (!expiry || expiry <= Date.now()) {
-      expiry = Date.now() + SESSION_DURATION
-      localStorage.setItem('nhq-session-expiry', expiry.toString())
+      doLogout('Your session has expired. Please log in again.')
+      return
     }
 
-    // Check grace period
+    // Check grace period from last tab close
     const lastTabTime = localStorage.getItem('nhq-session-last-tab-time')
     if (lastTabTime) {
       const elapsed = Date.now() - parseInt(lastTabTime, 10)
@@ -121,6 +123,19 @@ export function SessionProvider({ children }) {
       }
     }
 
+    // Server-side validation every 30s
+    const validateTimer = setInterval(async () => {
+      const token = localStorage.getItem('nhq-session-token')
+      if (!token) return
+      try {
+        const { data, error } = await supabase.rpc('validate_session', { p_token: token })
+        if (error || !data?.valid) {
+          doLogout(data?.expired ? 'Your session has expired. Please log in again.' : 'Session invalidated. Please log in again.')
+        }
+      } catch {}
+    }, VALIDATE_INTERVAL)
+
+    // Client-side countdown tick
     const tick = setInterval(() => {
       const left = expiry - Date.now()
       setRemaining(left)
@@ -150,14 +165,12 @@ export function SessionProvider({ children }) {
       try {
         bc.postMessage({ type: 'TAB_CLOSE', id: myId })
         tabs.delete(myId)
-
-        // Broadcast that user wants to know if other tabs exist
         const checkTimer = setTimeout(() => {
           if (tabs.size === 0) {
             localStorage.setItem('nhq-session-last-tab-time', Date.now().toString())
           }
         }, 100)
-        ; window.addEventListener('unload', () => clearTimeout(checkTimer))
+        window.addEventListener('unload', () => clearTimeout(checkTimer))
       } catch {}
     }
     window.addEventListener('beforeunload', handleBeforeUnload)
@@ -165,6 +178,7 @@ export function SessionProvider({ children }) {
     return () => {
       clearInterval(tick)
       clearInterval(heartbeat)
+      clearInterval(validateTimer)
       window.removeEventListener('beforeunload', handleBeforeUnload)
       handleBeforeUnload()
       try { bc.close() } catch {}

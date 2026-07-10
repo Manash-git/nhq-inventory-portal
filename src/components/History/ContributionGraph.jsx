@@ -11,6 +11,9 @@ function getLevel(count) {
   return 4
 }
 
+const CELL_SIZE = 13
+const CELL_GAP = 3
+
 export default function ContributionGraph({ logs }) {
   const [tooltip, setTooltip] = useState(null)
 
@@ -76,31 +79,26 @@ export default function ContributionGraph({ logs }) {
     return { weeks, monthPositions, logsByDate, totalActions: logs?.length || 0 }
   }, [logs])
 
-  const CELL_SIZE = 13
-  const CELL_GAP = 3
-  const COL_WIDTH = CELL_SIZE + CELL_GAP
+  const colWidth = CELL_SIZE + CELL_GAP
 
   return (
-    <div className="card contribution-card">
-      <div className="contribution-header">
-        <h3>Activity Timeline</h3>
-        <span className="contribution-subtitle">{totalActions} action{totalActions !== 1 ? 's' : ''} in the last year</span>
+    <div className="card" style={{ padding: '20px 24px', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+        <h3 style={{ fontSize: '1rem', fontWeight: 600, margin: 0 }}>Activity Timeline</h3>
+        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{totalActions} action{totalActions !== 1 ? 's' : ''} in the last year</span>
       </div>
 
-      <div className="contribution-graph">
+      <div style={{ overflowX: 'auto', overflowY: 'visible', paddingBottom: 4 }}>
         {/* Month labels */}
-        <div className="contribution-months" style={{ marginLeft: 28, marginBottom: 4, position: 'relative', height: 16 }}>
+        <div style={{ marginLeft: 30, marginBottom: 2, position: 'relative', height: 16 }}>
           {monthPositions.map((p, i) => (
-            <span
-              key={i}
-              style={{
-                position: 'absolute',
-                left: p.idx * COL_WIDTH,
-                fontSize: '0.7rem',
-                color: 'var(--text-muted)',
-                whiteSpace: 'nowrap'
-              }}
-            >
+            <span key={i} style={{
+              position: 'absolute',
+              left: p.idx * colWidth,
+              fontSize: '0.7rem',
+              color: 'var(--text-muted)',
+              whiteSpace: 'nowrap'
+            }}>
               {p.name}
             </span>
           ))}
@@ -108,7 +106,7 @@ export default function ContributionGraph({ logs }) {
 
         <div style={{ display: 'flex', gap: 0 }}>
           {/* Day labels */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: CELL_GAP, paddingRight: 4, width: 28 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: CELL_GAP, paddingRight: 2, width: 30, flexShrink: 0 }}>
             {DAY_NAMES.map((d, i) => (
               <span key={i} style={{
                 fontSize: '0.65rem',
@@ -124,9 +122,9 @@ export default function ContributionGraph({ logs }) {
           </div>
 
           {/* Contribution grid */}
-          <div style={{ display: 'flex', gap: CELL_GAP, overflowX: 'auto', paddingBottom: 4 }}>
+          <div style={{ display: 'flex', gap: CELL_GAP, minHeight: 7 * (CELL_SIZE + CELL_GAP) - CELL_GAP }}>
             {weeks.length === 0 ? (
-              <div style={{ padding: 20, color: 'var(--text-muted)', fontSize: '0.8125rem' }}>No data</div>
+              <div style={{ padding: '20px 0', color: 'var(--text-muted)', fontSize: '0.8125rem' }}>No data</div>
             ) : (
               weeks.map((week, wi) => (
                 <div key={wi} style={{ display: 'flex', flexDirection: 'column', gap: CELL_GAP }}>
@@ -140,11 +138,13 @@ export default function ContributionGraph({ logs }) {
                           width: CELL_SIZE,
                           height: CELL_SIZE,
                           borderRadius: 3,
-                          backgroundColor: `var(--contribution-${level})`,
-                          cursor: 'pointer',
+                          backgroundColor: level === 0 ? 'var(--contribution-0)' :
+                            `var(--contribution-${level})`,
+                          cursor: day.count > 0 ? 'pointer' : 'default',
                           transition: 'opacity 0.15s'
                         }}
                         onMouseEnter={(e) => {
+                          if (day.count === 0) return
                           const rect = e.target.getBoundingClientRect()
                           setTooltip({
                             x: rect.left,
@@ -165,18 +165,15 @@ export default function ContributionGraph({ logs }) {
         </div>
 
         {/* Legend */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end', marginTop: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end', marginTop: 12 }}>
           <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginRight: 4 }}>Less</span>
           {[0, 1, 2, 3, 4].map(l => (
-            <div
-              key={l}
-              style={{
-                width: CELL_SIZE,
-                height: CELL_SIZE,
-                borderRadius: 3,
-                backgroundColor: `var(--contribution-${l})`
-              }}
-            />
+            <div key={l} style={{
+              width: CELL_SIZE,
+              height: CELL_SIZE,
+              borderRadius: 3,
+              backgroundColor: `var(--contribution-${l})`
+            }} />
           ))}
           <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginLeft: 4 }}>More</span>
         </div>
@@ -185,33 +182,59 @@ export default function ContributionGraph({ logs }) {
       {/* Tooltip */}
       {tooltip && (
         <div
-          className="contribution-tooltip"
           style={{
             position: 'fixed',
             left: Math.min(tooltip.x, window.innerWidth - 300),
             top: Math.max(tooltip.y - 40, 10),
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 10,
+            boxShadow: 'var(--shadow-lg)',
+            padding: 12,
+            minWidth: 220,
+            maxWidth: 300,
             zIndex: 10000,
-            pointerEvents: 'none'
+            pointerEvents: 'none',
+            animation: 'fadeIn 0.15s ease'
           }}
         >
-          <div className="tooltip-header">
-            <strong>{tooltip.date}</strong>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            <strong style={{ color: 'var(--text-primary)' }}>{tooltip.date}</strong>
             <span>{tooltip.count} action{tooltip.count !== 1 ? 's' : ''}</span>
           </div>
           {tooltip.logs.length > 0 && (
-            <div className="tooltip-logs">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {tooltip.logs.slice(0, 8).map((log, i) => (
-                <div key={log.id || i} className="tooltip-log-item">
-                  <span className={`tooltip-action-badge action-${log.action}`}>{log.action.replace('_', ' ')}</span>
-                  <span className="tooltip-log-desc">
-                    {log.description?.length > 60
-                      ? log.description.slice(0, 60) + '...'
-                      : log.description}
+                <div key={log.id || i} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: '0.7rem', color: 'var(--text-secondary)', lineHeight: 1.3 }}>
+                  <span style={{
+                    padding: '1px 6px',
+                    borderRadius: 3,
+                    fontSize: '0.6rem',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                    marginTop: 1,
+                    background: log.action === 'add' ? 'rgba(56, 161, 105, 0.15)' :
+                      log.action === 'delete' ? 'rgba(229, 62, 62, 0.15)' :
+                      log.action === 'edit' ? 'rgba(0, 82, 255, 0.1)' :
+                      log.action === 'archive' ? 'rgba(214, 158, 46, 0.15)' : 'rgba(100, 116, 139, 0.15)',
+                    color: log.action === 'add' ? 'var(--success)' :
+                      log.action === 'delete' ? 'var(--danger)' :
+                      log.action === 'edit' ? 'var(--accent-primary)' :
+                      log.action === 'archive' ? 'var(--warning)' : 'var(--text-muted)'
+                  }}>
+                    {log.action.replace('_', ' ')}
+                  </span>
+                  <span style={{ wordBreak: 'break-word' }}>
+                    {log.description?.length > 60 ? log.description.slice(0, 60) + '...' : log.description}
                   </span>
                 </div>
               ))}
               {tooltip.logs.length > 8 && (
-                <div className="tooltip-more">+{tooltip.logs.length - 8} more</div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: 4, textAlign: 'center' }}>
+                  +{tooltip.logs.length - 8} more
+                </div>
               )}
             </div>
           )}

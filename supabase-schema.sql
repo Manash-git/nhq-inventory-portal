@@ -141,6 +141,12 @@ CREATE TABLE IF NOT EXISTS users (
 );
 ALTER TABLE users ADD COLUMN IF NOT EXISTS role_id UUID REFERENCES roles(id);
 ALTER TABLE users DROP COLUMN IF EXISTS display_name;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_login_attempts INT DEFAULT 0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_failed_login_time TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS account_locked_until TIMESTAMPTZ;
+-- Sync old column values to new columns for backwards compatibility
+UPDATE users SET failed_login_attempts = COALESCE(failed_attempts, 0) WHERE failed_login_attempts IS NULL;
+UPDATE users SET account_locked_until = locked_until WHERE account_locked_until IS NULL;
 
 UPDATE users u SET role_id = r.id FROM roles r WHERE u.role = r.name AND u.role_id IS NULL;
 
@@ -455,6 +461,7 @@ DECLARE
   v_remaining INT;
   v_login_id UUID;
   v_permissions JSONB;
+  v_now TIMESTAMPTZ := now();
 BEGIN
   SELECT * INTO v_user FROM users WHERE username = lower(p_username) AND is_active = true;
 
@@ -467,22 +474,38 @@ BEGIN
   -- Get role name
   SELECT r.name INTO v_role_name FROM roles r WHERE r.id = v_user.role_id;
 
-  -- Check if locked
-  IF v_user.locked_until IS NOT NULL AND v_user.locked_until > now() THEN
-    v_remaining := ceil(extract(epoch from (v_user.locked_until - now())) / 60);
+  -- Check if account is locked (use account_locked_until, fallback to locked_until)
+  IF (v_user.account_locked_until IS NOT NULL AND v_user.account_locked_until > v_now)
+     OR (v_user.account_locked_until IS NULL AND v_user.locked_until IS NOT NULL AND v_user.locked_until > v_now) THEN
+    v_remaining := ceil(extract(epoch from (
+      GREATEST(v_user.account_locked_until, v_user.locked_until) - v_now
+    )) / 60);
     INSERT INTO login_history (user_id, username, user_role, ip_address, browser, os, device, status, failure_reason)
     VALUES (v_user.id, v_user.username, v_role_name, p_ip_address, p_browser, p_os, p_device, 'failed', 'Account locked');
     RETURN jsonb_build_object('success', false, 'locked', true,
-      'error', format('Account locked. Try again in %s minute(s).', v_remaining),
+      'error', 'Your account has been temporarily locked due to multiple failed login attempts. Please try again after 10 minutes.',
       'remaining_attempts', 0);
+  END IF;
+
+  -- Clear expired lock so user can try again
+  IF v_user.account_locked_until IS NOT NULL AND v_user.account_locked_until <= v_now THEN
+    UPDATE users SET account_locked_until = NULL, locked_until = NULL,
+      failed_login_attempts = 0, failed_attempts = 0
+    WHERE id = v_user.id;
+    v_user.failed_login_attempts := 0;
+    v_user.account_locked_until := NULL;
   END IF;
 
   -- Verify password hash
   IF v_user.password = crypt(p_password, v_user.password) THEN
-    UPDATE users SET failed_attempts = 0, locked_until = NULL WHERE id = v_user.id;
+    -- Success: reset counters
+    UPDATE users SET
+      failed_login_attempts = 0, failed_attempts = 0,
+      last_failed_login_time = NULL, locked_until = NULL, account_locked_until = NULL
+    WHERE id = v_user.id;
 
     v_token := encode(gen_random_bytes(24), 'hex');
-    v_expires_at := now() + interval '1 hour';
+    v_expires_at := v_now + interval '1 hour';
 
     INSERT INTO sessions (user_id, token, expires_at) VALUES (v_user.id, v_token, v_expires_at);
 
@@ -515,23 +538,31 @@ BEGIN
       'login_id', v_login_id
     );
   ELSE
-    v_remaining := 2 - v_user.failed_attempts;
+    -- Failed attempt: increment counter
+    v_remaining := v_user.failed_login_attempts + 1;
+
+    UPDATE users SET
+      failed_login_attempts = failed_login_attempts + 1,
+      failed_attempts = failed_attempts + 1,
+      last_failed_login_time = v_now
+    WHERE id = v_user.id;
 
     INSERT INTO login_history (user_id, username, user_role, ip_address, browser, os, device, status, failure_reason)
     VALUES (v_user.id, v_user.username, v_role_name, p_ip_address, p_browser, p_os, p_device, 'failed', 'Wrong password');
 
-    IF v_user.failed_attempts >= 2 THEN
-      UPDATE users SET failed_attempts = failed_attempts + 1,
-        locked_until = now() + interval '10 minutes'
+    -- Lock after 3 consecutive failures
+    IF v_remaining >= 3 THEN
+      UPDATE users SET
+        account_locked_until = v_now + interval '10 minutes',
+        locked_until = v_now + interval '10 minutes'
       WHERE id = v_user.id;
       RETURN jsonb_build_object('success', false, 'locked', true,
-        'error', 'Account locked for 10 minutes due to too many failed attempts.',
+        'error', 'Your account has been temporarily locked due to multiple failed login attempts. Please try again after 10 minutes.',
         'remaining_attempts', 0);
     ELSE
-      UPDATE users SET failed_attempts = failed_attempts + 1 WHERE id = v_user.id;
       RETURN jsonb_build_object('success', false, 'locked', false,
-        'error', format('Invalid credentials. %s attempt(s) remaining.', v_remaining),
-        'remaining_attempts', v_remaining);
+        'error', format('Invalid credentials. %s attempt(s) remaining before lockout.', 3 - v_remaining),
+        'remaining_attempts', 3 - v_remaining);
     END IF;
   END IF;
 END;
@@ -994,7 +1025,7 @@ BEGIN
       v_product.product_description, v_old_qty, v_new_qty,
       CASE WHEN p_delta > 0 THEN '+' ELSE '' END, p_delta),
     'product', p_product_id::text,
-    jsonb_build_object('from', v_old_qty, 'to', v_new_qty, 'delta', p_delta));
+    jsonb_build_object('quantity', jsonb_build_object('from', v_old_qty, 'to', v_new_qty, 'delta', p_delta)));
 
   RETURN jsonb_build_object('success', true, 'quantity', v_new_qty, 'changed', true);
 END;

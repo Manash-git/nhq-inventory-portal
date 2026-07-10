@@ -366,22 +366,22 @@ export default function Home() {
                 <thead>
                   <tr>
                     <th style={{ width: 40 }}>Serial</th>
-                    <th onClick={() => handleSort('product_description')} style={{ cursor: 'pointer' }}>
+                    <th onClick={() => handleSort('product_description')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
                       Hardware Description <SortIcon col="product_description" />
                     </th>
-                    <th onClick={() => handleSort('part_number')} style={{ cursor: 'pointer' }}>
+                    <th onClick={() => handleSort('part_number')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
                       Part Number <SortIcon col="part_number" />
                     </th>
-                    <th onClick={() => handleSort('category')} style={{ cursor: 'pointer' }}>
+                    <th onClick={() => handleSort('category')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
                       Team <SortIcon col="category" />
                     </th>
-                    <th onClick={() => handleSort('quantity')} style={{ cursor: 'pointer', width: 120 }}>
+                    <th onClick={() => handleSort('quantity')} style={{ cursor: 'pointer', width: 120, whiteSpace: 'nowrap' }}>
                       Quantity <SortIcon col="quantity" />
                     </th>
-                    <th onClick={() => handleSort('created_at')} style={{ cursor: 'pointer' }}>
+                    <th onClick={() => handleSort('created_at')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
                       Date Added <SortIcon col="created_at" />
                     </th>
-                    <th onClick={() => handleSort('inventory_box_serial')} style={{ cursor: 'pointer' }}>
+                    <th onClick={() => handleSort('inventory_box_serial')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
                       Inventory Serial <SortIcon col="inventory_box_serial" />
                     </th>
                     <th style={{ width: 80 }}>Image</th>
@@ -418,35 +418,38 @@ export default function Home() {
                       <td style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
                         {product.inventory_box_serial || <span className="text-muted">--</span>}
                       </td>
-                      <td>
+                      <td style={{ textAlign: 'center' }}>
                         {product.image_url ? (
-                          <a href={product.image_url} target="_blank" rel="noopener noreferrer" className="btn-icon" title="View image" style={{ color: 'var(--accent-primary)' }}>
+                          <a href={product.image_url} target="_blank" rel="noopener noreferrer" className="btn-icon" title="View Image" style={{ color: 'var(--accent-primary)' }}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
                             </svg>
                           </a>
                         ) : (
-                          <span className="text-muted" style={{ fontSize: '0.75rem' }}>no image url found</span>
+                          <span className="btn-icon" title="View Image" style={{ color: 'var(--text-muted)', opacity: 0.35, cursor: 'default' }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                            </svg>
+                          </span>
                         )}
                       </td>
                       {canModifyInventory && (
                         <td>
-                          <div className="actions-cell">
-                            <button className="btn-icon" onClick={() => openEdit(product)} title="Edit">
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <div className="actions-cell" style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                            <button className="btn-icon" onClick={() => openEdit(product)} title="Edit Hardware">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                               </svg>
                             </button>
-                            {product.quantity <= 1 && (
-                              <button className="btn-icon" onClick={() => openArchive(product)} title="Archive" style={{ color: 'var(--warning)' }}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>
-                                </svg>
-                              </button>
-                            )}
-                            <button className="btn-icon" onClick={() => openDelete(product)} title="Delete" style={{ color: 'var(--danger)' }}>
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <button className="btn-icon" onClick={() => product.quantity <= 1 && openArchive(product)} title="Archive Hardware"
+                              style={{ color: product.quantity <= 1 ? 'var(--warning)' : 'transparent', pointerEvents: product.quantity <= 1 ? 'auto' : 'none' }}>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>
+                              </svg>
+                            </button>
+                            <button className="btn-icon" onClick={() => openDelete(product)} title="Delete Hardware" style={{ color: 'var(--danger)' }}>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                               </svg>
                             </button>
