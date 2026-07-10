@@ -1187,15 +1187,18 @@ BEGIN
   SELECT r.name INTO v_user_role FROM users u JOIN roles r ON u.role_id = r.id WHERE u.id = p_user_id;
 
   SELECT jsonb_agg(jsonb_build_object(
-    'date', l.created_at::date,
-    'count', count(*)
-  ) ORDER BY 1) INTO v_result
+    'id', l.id,
+    'created_at', l.created_at,
+    'action', l.action,
+    'description', l.description,
+    'user_name', l.user_name,
+    'user_role', l.user_role
+  ) ORDER BY l.created_at DESC) INTO v_result
   FROM activity_logs l
   WHERE l.created_at >= date_trunc('year', now())
     AND (v_user_role = 'super_user'
       OR (v_user_role = 'admin' AND l.user_role IN ('admin', 'read_only'))
-      OR (v_user_role = 'read_only' AND l.user_id = p_user_id))
-  GROUP BY l.created_at::date;
+      OR (v_user_role = 'read_only' AND l.user_id = p_user_id));
 
   RETURN COALESCE(v_result, '[]'::jsonb);
 END;

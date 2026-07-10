@@ -23,6 +23,11 @@ export default function Login() {
     if (sessionExpired) {
       addToast('Your session has expired. Please log in again.', 'warning')
     }
+    const msg = sessionStorage.getItem('nhq-logout-message')
+    if (msg) {
+      sessionStorage.removeItem('nhq-logout-message')
+      addToast(msg, 'warning')
+    }
   }, [sessionExpired, addToast])
 
   const handleSubmit = async (e) => {

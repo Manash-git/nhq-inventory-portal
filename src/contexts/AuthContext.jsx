@@ -96,19 +96,21 @@ export function AuthProvider({ children }) {
     return userData
   }, [])
 
-  const logout = useCallback(() => {
+  const logout = useCallback((msg) => {
     if (sessionToken) {
       supabase.rpc('logout_user', { p_token: sessionToken }).catch(() => {})
     }
 
-    setUser(null)
-    setSessionToken(null)
-    setPermissions([])
     localStorage.removeItem('nhq-current-user')
     localStorage.removeItem('nhq-session-token')
     localStorage.removeItem('nhq-session-expiry')
     localStorage.removeItem('nhq-session-last-tab-time')
     localStorage.removeItem('nhq-user-permissions')
+    localStorage.removeItem('nhq-session-last-activity')
+
+    if (msg) {
+      sessionStorage.setItem('nhq-logout-message', msg)
+    }
 
     window.location.href = '/login'
   }, [sessionToken])

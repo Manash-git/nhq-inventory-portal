@@ -63,7 +63,7 @@ export function SessionProvider({ children }) {
     localStorage.removeItem('nhq-session-last-tab-time')
     if (msg) addToast(msg, 'warning')
     setSessionExpired(true)
-    logout()
+    logout(msg)
   }, [logout, addToast])
 
   useEffect(() => {
