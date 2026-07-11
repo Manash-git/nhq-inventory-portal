@@ -1,4 +1,11 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+
+const CATEGORY_COLORS = {
+  System: '#3b82f6',
+  Backup: '#22c55e',
+  Network: '#f59e0b',
+  'Data Center': '#8b5cf6'
+}
 
 export default function QuantityChart({ products }) {
   const data = products.reduce((acc, p) => {
@@ -26,7 +33,11 @@ export default function QuantityChart({ products }) {
             fontSize: 13
           }}
         />
-        <Bar dataKey="quantity" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="quantity" radius={[4, 4, 0, 0]}>
+          {data.map((entry, index) => (
+            <Cell key={index} fill={CATEGORY_COLORS[entry.category] || 'var(--chart-1)'} />
+          ))}
+        </Bar>
       </BarChart>
     </ResponsiveContainer>
   )
