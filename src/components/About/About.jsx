@@ -141,7 +141,7 @@ export default function About() {
                 </div>
                 <div>
                   <h3 className="developer-name">Manash Kumar Mondal</h3>
-                  <p className="developer-role">Web Developer</p>
+                  <p className="developer-role">Post-Sales Engineer and Vibe Coder</p>
                 </div>
               </div>
 
