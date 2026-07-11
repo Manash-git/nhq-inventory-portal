@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useNotification } from '../../contexts/NotificationContext'
 import Modal from '../Common/Modal'
+import ForgotPasswordModal from '../Common/ForgotPasswordModal'
 import './Navbar.css'
 
 export default function Navbar() {
@@ -21,6 +22,8 @@ export default function Navbar() {
 
   // Change password form
   const [pwdForm, setPwdForm] = useState({ current: '', newPwd: '', confirm: '' })
+  const [showForgotPwd, setShowForgotPwd] = useState(false)
+  const forgotBtnRef = useRef(null)
 
   // Create user form
   const [createForm, setCreateForm] = useState({ username: '', password: '', role: 'read_only' })
@@ -347,15 +350,22 @@ export default function Navbar() {
         </div>
         <div className="form-group">
           <label className="form-label">Confirm New Password</label>
-          <input type="password" className="form-input" placeholder="Confirm new password"
-            value={pwdForm.confirm}
-            onChange={e => setPwdForm(p => ({ ...p, confirm: e.target.value }))} />
+            <input type="password" className="form-input" placeholder="Confirm new password"
+              value={pwdForm.confirm}
+              onChange={e => setPwdForm(p => ({ ...p, confirm: e.target.value }))} />
         </div>
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-          <button className="btn btn-secondary" onClick={() => setShowChangePwdModal(false)}>Cancel</button>
-          <button className="btn btn-primary" onClick={handleChangePassword}>Change Password</button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <button type="button" ref={forgotBtnRef} className="login-link-btn" onClick={() => setShowForgotPwd(true)} style={{ fontSize: '0.8125rem', padding: 0 }}>
+            Forgot Password?
+          </button>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button className="btn btn-secondary" onClick={() => setShowChangePwdModal(false)}>Cancel</button>
+            <button className="btn btn-primary" onClick={handleChangePassword}>Change Password</button>
+          </div>
         </div>
       </Modal>
+
+      <ForgotPasswordModal isOpen={showForgotPwd} onClose={() => setShowForgotPwd(false)} triggerRef={forgotBtnRef} />
 
       {/* User Management Modal */}
       <Modal isOpen={showUserMgmtModal} onClose={() => setShowUserMgmtModal(false)} title="Manage Users" width="700px">

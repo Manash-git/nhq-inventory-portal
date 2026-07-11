@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useSession } from '../../contexts/SessionContext'
 import { useNotification } from '../../contexts/NotificationContext'
+import ForgotPasswordModal from '../Common/ForgotPasswordModal'
 import './Login.css'
 
 export default function Login() {
@@ -18,6 +19,8 @@ export default function Login() {
   const [loginError, setLoginError] = useState('')
   const [remainingAttempts, setRemainingAttempts] = useState(null)
   const [lockedMessage, setLockedMessage] = useState('')
+  const [showForgotPwd, setShowForgotPwd] = useState(false)
+  const forgotBtnRef = useRef(null)
 
   useEffect(() => {
     if (sessionExpired) {
@@ -176,8 +179,8 @@ export default function Login() {
           </button>
 
           <div className="login-footer-links">
-            <button type="button" className="login-link-btn" onClick={() => alert('Contact to your administrator')}>
-              Forgot password?
+            <button type="button" ref={forgotBtnRef} className="login-link-btn" onClick={() => setShowForgotPwd(true)}>
+              Forgot Password?
             </button>
           </div>
         </form>
@@ -200,6 +203,8 @@ export default function Login() {
           &copy; {new Date().getFullYear()} NHQ Distributions Pvt. Ltd. All rights reserved.
         </p>
       </div>
+
+      <ForgotPasswordModal isOpen={showForgotPwd} onClose={() => setShowForgotPwd(false)} triggerRef={forgotBtnRef} />
     </div>
   )
 }
