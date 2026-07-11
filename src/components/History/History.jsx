@@ -368,7 +368,6 @@ export default function History() {
                     <th>Username</th>
                     <th>Role</th>
                     <th>Status</th>
-                    <th>IP Address</th>
                     <th>Browser</th>
                     <th>OS</th>
                     <th>Device</th>
@@ -383,7 +382,6 @@ export default function History() {
                         {h.user_role?.replace('_', ' ')}</span></td>
                       <td><span className={`badge ${h.status === 'success' ? 'badge-success' : 'badge-danger'}`}
                         style={{ textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 600 }}>{h.status}</span></td>
-                      <td style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{h.ip_address || '-'}</td>
                       <td style={{ fontSize: '0.8125rem' }}>{h.browser || '-'}</td>
                       <td style={{ fontSize: '0.8125rem' }}>{h.os || '-'}</td>
                       <td style={{ fontSize: '0.8125rem' }}>{h.device || '-'}</td>

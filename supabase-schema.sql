@@ -120,7 +120,7 @@ CREATE TABLE IF NOT EXISTS categories (
 INSERT INTO categories (name, description, sort_order) VALUES
   ('Backup',     'Backup appliance hardware and components',     1),
   ('System',     'System and infrastructure components',        2),
-  ('Networking', 'Networking equipment and modules',            3),
+  ('Network',    'Network equipment and modules',               3),
   ('Data Center','Data center hardware and accessories',         4)
 ON CONFLICT (name) DO NOTHING;
 
