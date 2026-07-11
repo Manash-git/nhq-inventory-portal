@@ -21,6 +21,10 @@ export default function Home() {
   const [localCategories, setLocalCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [filterTeam, setFilterTeam] = useState('')
+  const [filterDateFrom, setFilterDateFrom] = useState('')
+  const [filterDateTo, setFilterDateTo] = useState('')
+  const [filterQuantity, setFilterQuantity] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -110,12 +114,22 @@ export default function Home() {
 
   const filtered = products.filter(p => {
     const q = search.toLowerCase()
-    return (
+    const matchesSearch = (
       p.product_description?.toLowerCase().includes(q) ||
       p.part_number?.toLowerCase().includes(q) ||
       p.category?.toLowerCase().includes(q) ||
       p.inventory_box_serial?.toLowerCase().includes(q)
     )
+    const matchesTeam = !filterTeam || p.category_id === filterTeam
+    const matchesDateFrom = !filterDateFrom || new Date(p.created_at) >= new Date(filterDateFrom)
+    const matchesDateTo = !filterDateTo || new Date(p.created_at) <= new Date(filterDateTo + 'T23:59:59')
+    const qty = p.quantity ?? 0
+    let matchesQty = true
+    if (filterQuantity === '0') matchesQty = qty === 0
+    else if (filterQuantity === '1-5') matchesQty = qty >= 1 && qty <= 5
+    else if (filterQuantity === '6-10') matchesQty = qty >= 6 && qty <= 10
+    else if (filterQuantity === '10+') matchesQty = qty > 10
+    return matchesSearch && matchesTeam && matchesDateFrom && matchesDateTo && matchesQty
   })
 
   const resetForm = () => {
@@ -408,6 +422,23 @@ export default function Home() {
               style={{ width: 240, paddingLeft: 36 }}
             />
           </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <select className="form-input" style={{ width: 150 }} value={filterTeam} onChange={e => setFilterTeam(e.target.value)}>
+              <option value="">All Teams</option>
+              {localCategories.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            <input type="date" className="form-input" style={{ width: 145 }} value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} title="From date" />
+            <input type="date" className="form-input" style={{ width: 145 }} value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} title="To date" />
+            <select className="form-input" style={{ width: 110 }} value={filterQuantity} onChange={e => setFilterQuantity(e.target.value)}>
+              <option value="">All Qty</option>
+              <option value="0">0</option>
+              <option value="1-5">1–5</option>
+              <option value="6-10">6–10</option>
+              <option value="10+">10+</option>
+            </select>
+          </div>
           {canExport && (
             <div ref={exportRef} style={{ position: 'relative' }}>
               <button className="btn btn-secondary" onClick={() => setShowExportMenu(p => !p)}>
@@ -468,7 +499,7 @@ export default function Home() {
               <p>{search ? 'Try a different search term.' : 'Add your first hardware to get started.'}</p>
             </div>
           ) : (
-            <div className="table-container">
+            <div className="table-container" style={{ maxHeight: filtered.length >= 50 ? '70vh' : 'none' }}>
               <table className="data-table">
                 <thead>
                   <tr>
