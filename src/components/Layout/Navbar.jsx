@@ -243,6 +243,15 @@ export default function Navbar() {
                     )}
                     <span style={{ marginLeft: currentTheme === 'cohesity' ? 0 : 24 }}>Dark Teal</span>
                   </button>
+                  <button className={`dropdown-item ${currentTheme === 'deepVintage' ? 'active' : ''}`}
+                    onClick={() => { switchTheme('deepVintage'); setShowThemeMenu(false) }}>
+                    {currentTheme === 'deepVintage' && (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    )}
+                    <span style={{ marginLeft: currentTheme === 'deepVintage' ? 0 : 24 }}>Deep Vintage Futuristic</span>
+                  </button>
                 </div>
               )}
             </div>

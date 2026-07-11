@@ -67,9 +67,13 @@ export function AuthProvider({ children }) {
     const ua = parseUA()
     let ip = null
     try {
-      const res = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(3000) })
-      const json = await res.json()
-      if (json.ip) ip = json.ip
+      const res = await Promise.race([
+        fetch('https://api.ipify.org?format=json').then(r => r.json()),
+        fetch('https://api.ip.sb/geoip').then(r => r.json()),
+        fetch('https://ip-api.com/json').then(r => r.json()),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
+      ])
+      ip = res.ip || res.query || null
     } catch {}
     const { data, error: rpcError } = await supabase.rpc('login_user', {
       p_username: username,

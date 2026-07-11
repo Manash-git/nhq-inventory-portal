@@ -195,16 +195,6 @@ export default function History() {
     return m[action] || 'var(--text-muted)'
   }
 
-  const formatDuration = (sec) => {
-    if (!sec) return '-'
-    const h = Math.floor(sec / 3600)
-    const m = Math.floor((sec % 3600) / 60)
-    const s = sec % 60
-    if (h > 0) return `${h}h ${m}m`
-    if (m > 0) return `${m}m ${s}s`
-    return `${s}s`
-  }
-
   const totalPages = (total, size) => Math.max(1, Math.ceil(total / size))
 
   const Pagination = ({ page, total, perPage, onChange }) => {
@@ -383,8 +373,6 @@ export default function History() {
                     <th>Browser</th>
                     <th>OS</th>
                     <th>Device</th>
-                    <th>Logout Time</th>
-                    <th>Session</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -400,8 +388,6 @@ export default function History() {
                       <td style={{ fontSize: '0.8125rem' }}>{h.browser || '-'}</td>
                       <td style={{ fontSize: '0.8125rem' }}>{h.os || '-'}</td>
                       <td style={{ fontSize: '0.8125rem' }}>{h.device || '-'}</td>
-                      <td style={{ fontSize: '0.8125rem', whiteSpace: 'nowrap' }}>{h.logout_time ? formatDateTime(h.logout_time) : '-'}</td>
-                      <td style={{ fontSize: '0.8125rem' }}>{formatDuration(h.session_duration)}</td>
                     </tr>
                   ))}
                 </tbody>
