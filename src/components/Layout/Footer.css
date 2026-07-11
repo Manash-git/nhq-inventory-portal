@@ -1,0 +1,52 @@
+.footer {
+  background: var(--bg-nav);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0 24px;
+  flex-shrink: 0;
+}
+
+.footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1440px;
+  margin: 0 auto;
+  height: 52px;
+  gap: 16px;
+}
+
+.footer-copyright {
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.6);
+  white-space: nowrap;
+}
+
+.footer-copyright strong {
+  color: var(--text-inverse);
+  font-weight: 500;
+}
+
+.footer-version {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.35);
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .footer {
+    padding: 0 16px;
+  }
+
+  .footer-inner {
+    height: 44px;
+  }
+
+  .footer-copyright {
+    font-size: 0.75rem;
+  }
+
+  .footer-version {
+    font-size: 0.6875rem;
+  }
+}
