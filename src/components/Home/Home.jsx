@@ -499,7 +499,7 @@ export default function Home() {
               <p>{search ? 'Try a different search term.' : 'Add your first hardware to get started.'}</p>
             </div>
           ) : (
-            <div className="table-container" style={{ maxHeight: filtered.length >= 50 ? '70vh' : 'none' }}>
+            <div className="table-container">
               <table className="data-table">
                 <thead>
                   <tr>
