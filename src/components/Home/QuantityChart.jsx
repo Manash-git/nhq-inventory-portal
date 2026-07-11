@@ -1,20 +1,19 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
 const CATEGORY_COLORS = {
-  System: '#3b82f6',
-  Backup: '#22c55e',
-  Network: '#f59e0b',
-  'Data Center': '#8b5cf6'
+  'Backup': '#e9724d',
+  'System': '#92cad1',
+  'Network': '#79ccb3',
+  'Data Center': '#868686'
 }
 
 export default function QuantityChart({ products }) {
   const data = products.reduce((acc, p) => {
-    const label = p.category === 'Networking' ? 'Network' : p.category
-    const existing = acc.find(item => item.category === label)
+    const existing = acc.find(item => item.category === p.category)
     if (existing) {
       existing.quantity += p.quantity
     } else {
-      acc.push({ category: label, quantity: p.quantity })
+      acc.push({ category: p.category, quantity: p.quantity })
     }
     return acc
   }, [])
@@ -35,8 +34,8 @@ export default function QuantityChart({ products }) {
           }}
         />
         <Bar dataKey="quantity" radius={[4, 4, 0, 0]}>
-          {data.map((entry, index) => (
-            <Cell key={index} fill={CATEGORY_COLORS[entry.category] || 'var(--chart-1)'} />
+          {data.map((entry, idx) => (
+            <Cell key={idx} fill={CATEGORY_COLORS[entry.category] || 'var(--chart-1)'} />
           ))}
         </Bar>
       </BarChart>

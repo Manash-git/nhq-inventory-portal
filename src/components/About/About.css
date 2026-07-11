@@ -88,51 +88,189 @@
 
 .about-contact-card {
   grid-column: 1 / -1;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #FFFDF8 0%, #FFF6EC 100%);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.about-developer {
+.about-contact-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.10);
+}
+
+.developer-profile-layout {
   display: flex;
-  align-items: flex-start;
-  gap: 20px;
+  min-height: 300px;
 }
 
-.developer-avatar {
-  width: 64px;
-  height: 64px;
-  border-radius: 16px;
-  background: var(--bg-tertiary);
-  color: var(--accent-primary);
+.developer-profile-main {
+  flex: 1;
+  padding: 32px;
+  background: #FFFFFF;
+  border-radius: 18px;
+  margin: 2px;
+}
+
+.developer-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.developer-avatar-circle {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #FDEBD0;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.developer-details h4 {
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 8px;
+.developer-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1F2937;
+  margin: 0 0 4px;
 }
 
-.developer-contact {
+.developer-role {
+  font-size: 0.875rem;
+  color: #E67E22;
+  font-weight: 500;
+  margin: 0;
+}
+
+.developer-contact-grid {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  gap: 12px;
+  margin-bottom: 24px;
 }
 
-.developer-link {
+.developer-contact-chip {
+  flex: 1;
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.8125rem;
-  color: var(--text-secondary);
+  gap: 12px;
+  padding: 14px 18px;
+  background: #FFF4E8;
+  border-radius: 12px;
+  border: 1px solid #FFE4CC;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.developer-contact-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(230, 126, 34, 0.10);
+}
+
+.developer-chip-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.developer-chip-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #6B7280;
+  margin: 0 0 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.developer-chip-value {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #1F2937;
   text-decoration: none;
   transition: color 0.2s;
 }
 
-.developer-link:hover {
-  color: var(--accent-primary);
+.developer-chip-value:hover {
+  color: #E67E22;
+}
+
+.developer-divider {
+  height: 1px;
+  background: #E5E7EB;
+  margin-bottom: 24px;
+}
+
+.developer-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.developer-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.developer-btn:hover {
+  transform: scale(1.03);
+}
+
+.developer-btn:focus-visible {
+  outline: 2px solid #E67E22;
+  outline-offset: 2px;
+}
+
+.developer-btn-linkedin {
+  background: #0A66C2;
+  color: #FFFFFF;
+}
+
+.developer-btn-linkedin:hover {
+  box-shadow: 0 4px 16px rgba(10, 102, 194, 0.30);
+}
+
+.developer-btn-github {
+  background: #1F2937;
+  color: #FFFFFF;
+}
+
+.developer-btn-github:hover {
+  box-shadow: 0 4px 16px rgba(31, 41, 55, 0.30);
+}
+
+.developer-graphic {
+  width: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  flex-shrink: 0;
+}
+
+.developer-graphic svg {
+  width: 100%;
+  height: auto;
+}
+
+@media (max-width: 1024px) {
+  .developer-graphic {
+    display: none;
+  }
 }
 
 @media (max-width: 768px) {
@@ -140,7 +278,19 @@
     grid-template-columns: 1fr;
   }
 
-  .about-developer {
+  .developer-profile-main {
+    padding: 24px;
+  }
+
+  .developer-contact-grid {
     flex-direction: column;
+  }
+
+  .developer-actions {
+    flex-direction: column;
+  }
+
+  .developer-btn {
+    width: 100%;
   }
 }

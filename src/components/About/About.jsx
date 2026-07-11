@@ -130,39 +130,84 @@ export default function About() {
         </div>
 
         <div className="card about-card about-contact-card">
-          <div className="about-card-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-            </svg>
-          </div>
-          <h3>Developer Information</h3>
-          <div className="about-developer">
-            <div className="developer-avatar">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-              </svg>
-            </div>
-            <div className="developer-details">
-              <h4>Manash Kumar Mondal</h4>
-              <div className="developer-contact">
-                <a href="mailto:manash@nhqbd.com" className="developer-link">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+          <div className="developer-profile-layout">
+            <div className="developer-profile-main">
+              <div className="developer-profile-header">
+                <div className="developer-avatar-circle">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#E67E22" strokeWidth="1.8">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
                   </svg>
-                  manash@nhqbd.com
+                </div>
+                <div>
+                  <h3 className="developer-name">Manash Kumar Mondal</h3>
+                  <p className="developer-role">Web Developer</p>
+                </div>
+              </div>
+
+              <div className="developer-contact-grid">
+                <div className="developer-contact-chip">
+                  <div className="developer-chip-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E67E22" strokeWidth="2">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                      <polyline points="22,6 12,13 2,6"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="developer-chip-label">Email</p>
+                    <a href="mailto:manash@nhqbd.com" className="developer-chip-value">manash@nhqbd.com</a>
+                  </div>
+                </div>
+                <div className="developer-contact-chip">
+                  <div className="developer-chip-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E67E22" strokeWidth="2">
+                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="developer-chip-label">Phone</p>
+                    <a href="tel:01332814434" className="developer-chip-value">01332814434</a>
+                  </div>
+                </div>
+              </div>
+
+              <div className="developer-divider" />
+
+              <div className="developer-actions">
+                <a href="https://www.linkedin.com/in/manash-mondal/" target="_blank" rel="noopener noreferrer" className="developer-btn developer-btn-linkedin">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                  </svg>
+                  LinkedIn
                 </a>
-                <span className="developer-link">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                <a href="https://github.com/Manash-git" target="_blank" rel="noopener noreferrer" className="developer-btn developer-btn-github">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
                   </svg>
-                  01332814434
-                </span>
+                  GitHub
+                </a>
               </div>
             </div>
-          </div>
-          <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border-light)', fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-            <p>Company: NHQ Distributions Pvt. Ltd.</p>
-            <p style={{ marginTop: 4 }}>Location: Middle Badda, Bir Uttam Rafiqul Islam Avenue, Azahar Comfort Complex (Level 14/C), 130/A Progati Sarani, Dhaka, Bangladesh</p>
+
+            <div className="developer-graphic" aria-hidden="true">
+              <svg viewBox="0 0 400 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="30" y="20" width="340" height="280" rx="16" stroke="#E67E22" strokeWidth="1.5" opacity="0.12" />
+                <rect x="50" y="50" width="90" height="8" rx="4" fill="#E67E22" opacity="0.12" />
+                <rect x="50" y="70" width="120" height="8" rx="4" fill="#E67E22" opacity="0.08" />
+                <rect x="50" y="90" width="60" height="8" rx="4" fill="#E67E22" opacity="0.10" />
+                <rect x="50" y="130" width="160" height="8" rx="4" fill="#E67E22" opacity="0.12" />
+                <rect x="50" y="150" width="80" height="8" rx="4" fill="#E67E22" opacity="0.08" />
+                <rect x="50" y="170" width="200" height="8" rx="4" fill="#E67E22" opacity="0.10" />
+                <rect x="50" y="210" width="130" height="8" rx="4" fill="#E67E22" opacity="0.12" />
+                <rect x="50" y="230" width="100" height="8" rx="4" fill="#E67E22" opacity="0.08" />
+                <rect x="50" y="250" width="180" height="8" rx="4" fill="#E67E22" opacity="0.10" />
+                <path d="M300 260 L320 240 L340 260" stroke="#E67E22" strokeWidth="2" opacity="0.10" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M280 240 L300 220 L320 240" stroke="#E67E22" strokeWidth="2" opacity="0.08" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx="320" cy="240" r="4" fill="#E67E22" opacity="0.12" />
+                <circle cx="300" cy="260" r="4" fill="#E67E22" opacity="0.10" />
+                <circle cx="280" cy="240" r="4" fill="#E67E22" opacity="0.08" />
+              </svg>
+            </div>
           </div>
         </div>
       </div>
