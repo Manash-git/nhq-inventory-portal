@@ -58,7 +58,7 @@ export default function History() {
   const [archiveTotal, setArchiveTotal] = useState(0)
   const ARCHIVE_PER_PAGE = 15
 
-  const perPage = 50
+  const perPage = 10000
 
   const fetchLogs = useCallback(async () => {
     setLogsLoading(true)
@@ -281,7 +281,7 @@ export default function History() {
               <p>Actions performed on hardware will appear here.</p>
             </div>
           ) : (
-            <div className="activity-list">
+            <div className="activity-list" style={{ maxHeight: logs.length >= 50 ? '70vh' : 'none', overflowY: 'auto' }}>
               {logs.map(log => (
                 <div key={log.id} className="activity-item">
                   <div className="activity-icon" style={{ background: `${getActionColor(log.action)}15`, color: getActionColor(log.action) }}>
@@ -327,7 +327,6 @@ export default function History() {
               ))}
             </div>
           )}
-          <Pagination page={logsPage} total={logsTotal} perPage={perPage} onChange={setLogsPage} />
         </div>
       )}
 
@@ -361,7 +360,7 @@ export default function History() {
               <p>Login events will appear here.</p>
             </div>
           ) : (
-            <div className="table-container">
+            <div className="table-container" style={{ maxHeight: loginHistory.length >= 50 ? '70vh' : 'none' }}>
               <table className="data-table">
                 <thead>
                   <tr>
@@ -394,7 +393,6 @@ export default function History() {
               </table>
             </div>
           )}
-          <Pagination page={loginPage} total={loginTotal} perPage={perPage} onChange={setLoginPage} />
         </div>
       )}
 

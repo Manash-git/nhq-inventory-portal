@@ -249,55 +249,6 @@ export default function ContributionGraph({ logs }) {
         </div>
       )}
 
-      {/* Today's Activity */}
-      {(() => {
-        const todayStr = localDateStr(new Date())
-        const todayLogs = logsByDate[todayStr]
-        if (!todayLogs || todayLogs.length === 0) {
-          return (
-            <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--border-light)' }}>
-              <h4 style={{ fontSize: '0.85rem', fontWeight: 600, margin: '0 0 8px 0' }}>Today's Activity</h4>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>No activity recorded today.</p>
-            </div>
-          )
-        }
-        return (
-          <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--border-light)' }}>
-            <h4 style={{ fontSize: '0.85rem', fontWeight: 600, margin: '0 0 12px 0' }}>
-              Today's Activity ({todayLogs.length} action{todayLogs.length !== 1 ? 's' : ''})
-            </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {todayLogs.map((log, i) => (
-                <div key={log.id || i} style={{
-                  display: 'flex', alignItems: 'flex-start', gap: 8,
-                  fontSize: '0.8125rem', padding: '6px 0',
-                  borderBottom: i < todayLogs.length - 1 ? '1px solid var(--border-light)' : 'none'
-                }}>
-                  <span style={{
-                    padding: '2px 8px', borderRadius: 4, fontSize: '0.65rem',
-                    fontWeight: 600, textTransform: 'uppercase', whiteSpace: 'nowrap',
-                    flexShrink: 0, marginTop: 1,
-                    background: log.action === 'add' ? 'rgba(56, 161, 105, 0.15)' :
-                      log.action === 'delete' ? 'rgba(229, 62, 62, 0.15)' :
-                      log.action === 'edit' ? 'rgba(0, 82, 255, 0.1)' :
-                      log.action === 'archive' ? 'rgba(214, 158, 46, 0.15)' : 'rgba(100, 116, 139, 0.15)',
-                    color: log.action === 'add' ? 'var(--success)' :
-                      log.action === 'delete' ? 'var(--danger)' :
-                      log.action === 'edit' ? 'var(--accent-primary)' :
-                      log.action === 'archive' ? 'var(--warning)' : 'var(--text-muted)'
-                  }}>
-                    {log.action.replace('_', ' ')}
-                  </span>
-                  <span style={{ flex: 1, color: 'var(--text-primary)' }}>{log.description}</span>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                    {log.created_at ? new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )
-      })()}
     </div>
   )
 }
