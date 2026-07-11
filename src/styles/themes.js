@@ -1,6 +1,6 @@
 export const themes = {
   nhqbd: {
-    name: 'NHQBD',
+    name: 'Midnight Blue',
     light: {
       '--bg-primary': '#ffffff',
       '--bg-secondary': '#f4f6f9',
@@ -95,7 +95,7 @@ export const themes = {
     }
   },
   cohesity: {
-    name: 'Cohesity',
+    name: 'Dark Teal',
     light: {
       '--bg-primary': '#ffffff',
       '--bg-secondary': '#f0faf8',

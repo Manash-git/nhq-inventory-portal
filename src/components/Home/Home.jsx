@@ -7,7 +7,8 @@ import Modal from '../Common/Modal'
 import QuantityChart from './QuantityChart'
 import PartQuantityChart from './PartQuantityChart'
 import * as XLSX from 'xlsx'
-import './Home.css'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 const QUANTITY_OPTIONS = [1, 2, 3, 4, 5, 10, 15, 20, 25, 30, 40, 50, 75, 100]
 
@@ -258,19 +259,99 @@ export default function Home() {
       XLSX.writeFile(wb, `Inventory-${date}.xls`)
 
       // Log export via RPC
-      await supabase.rpc('log_activity', {
+      try { await supabase.rpc('log_activity', {
         p_user_id: user.id,
         p_action: 'export',
         p_description: `${user.username} exported inventory`,
         p_target_type: 'export',
         p_target_id: date
-      }).catch(() => {})
+      }) } catch {}
 
       addToast('Exported successfully!', 'success')
     } catch (err) {
       addToast(err.message, 'error')
     }
   }
+
+  const handleExportPDF = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_products', { p_archived: false })
+      if (error) throw error
+
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
+
+      // Header
+      doc.setFontSize(18)
+      doc.setTextColor(33, 37, 41)
+      doc.text('NHQ Inventory Report', 14, 20)
+
+      doc.setFontSize(10)
+      doc.setTextColor(108, 117, 125)
+      const now = new Date()
+      doc.text(`Generated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`, 14, 28)
+
+      // Table
+      const rows = (data || []).map(p => [
+        p.product_description || '',
+        p.part_number || '',
+        p.category || '',
+        String(p.quantity ?? 0),
+        p.inventory_box_serial || '--',
+        p.created_at ? formatDate(p.created_at) : ''
+      ])
+
+      autoTable(doc, {
+        startY: 34,
+        head: [['Description', 'Part Number', 'Team', 'Qty', 'Inventory Serial', 'Date Added']],
+        body: rows,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [33, 37, 41],
+          textColor: [255, 255, 255],
+          fontSize: 9,
+          fontStyle: 'bold'
+        },
+        bodyStyles: { fontSize: 8 },
+        alternateRowStyles: { fillColor: [248, 249, 250] },
+        margin: { top: 34 }
+      })
+
+      // Footer summary
+      const totalItems = data ? data.length : 0
+      const totalQty = data ? data.reduce((s, p) => s + (p.quantity || 0), 0) : 0
+      const finalY = doc.lastAutoTable.finalY + 8
+      doc.setFontSize(9)
+      doc.setTextColor(108, 117, 125)
+      doc.text(`Total Items: ${totalItems}  |  Total Quantity: ${totalQty}`, 14, finalY)
+
+      const date = now.toISOString().split('T')[0]
+      doc.save(`Inventory-Report-${date}.pdf`)
+
+      // Log export
+      try { await supabase.rpc('log_activity', {
+        p_user_id: user.id,
+        p_action: 'export',
+        p_description: `${user.username} exported inventory PDF report`,
+        p_target_type: 'export',
+        p_target_id: date
+      }) } catch {}
+
+      addToast('PDF report exported successfully!', 'success')
+    } catch (err) {
+      addToast(err.message, 'error')
+    }
+  }
+
+  const [showExportMenu, setShowExportMenu] = useState(false)
+  const exportRef = useRef(null)
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (exportRef.current && !exportRef.current.contains(e.target)) setShowExportMenu(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
 
   const openEdit = (product) => {
     setSelectedProduct(product)
@@ -328,12 +409,38 @@ export default function Home() {
             />
           </div>
           {canExport && (
-            <button className="btn btn-secondary" onClick={handleExport}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-              Export
-            </button>
+            <div ref={exportRef} style={{ position: 'relative' }}>
+              <button className="btn btn-secondary" onClick={() => setShowExportMenu(p => !p)}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Export
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginLeft: 4 }}>
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+              {showExportMenu && (
+                <div style={{
+                  position: 'absolute', top: '100%', right: 0, marginTop: 4,
+                  background: 'var(--bg-card)', border: '1px solid var(--border-color)',
+                  borderRadius: 10, boxShadow: 'var(--shadow-lg)', zIndex: 100,
+                  minWidth: 180, overflow: 'hidden'
+                }}>
+                  <button className="dropdown-item" onClick={() => { setShowExportMenu(false); handleExport() }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 8, flexShrink: 0 }}>
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                    Export as Excel (.xls)
+                  </button>
+                  <button className="dropdown-item" onClick={() => { setShowExportMenu(false); handleExportPDF() }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 8, flexShrink: 0 }}>
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                    Export as Report PDF
+                  </button>
+                </div>
+              )}
+            </div>
           )}
           {canModifyInventory && (
             <button className="btn btn-primary" onClick={() => { resetForm(); setShowAddModal(true) }}>

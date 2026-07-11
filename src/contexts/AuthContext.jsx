@@ -65,12 +65,19 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (username, password) => {
     const ua = parseUA()
+    let ip = null
+    try {
+      const res = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(3000) })
+      const json = await res.json()
+      if (json.ip) ip = json.ip
+    } catch {}
     const { data, error: rpcError } = await supabase.rpc('login_user', {
       p_username: username,
       p_password: password,
       p_browser: ua.browser,
       p_os: ua.os,
-      p_device: ua.device
+      p_device: ua.device,
+      p_ip_address: ip
     })
 
     if (rpcError) throw new Error('Login failed. Please try again.')

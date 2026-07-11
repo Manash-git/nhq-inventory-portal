@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../../utils/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import { useNotification } from '../../contexts/NotificationContext'
@@ -168,6 +168,15 @@ export default function History() {
     else if (activeTab === 'archived') fetchArchived()
     else if (activeTab === 'timeline') fetchTimelineLogs()
   }, [activeTab, fetchLogs, fetchLoginHistory, fetchArchived, fetchTimelineLogs])
+
+  // Eagerly fetch archived count on mount so tab badge shows correct count
+  const mounted = useRef(false)
+  useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true
+      fetchArchived()
+    }
+  }, [fetchArchived])
 
   const handleArchiveSort = (col) => {
     if (archiveSort === col) setArchiveSortDir(d => d === 'asc' ? 'desc' : 'asc')

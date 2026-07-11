@@ -3,6 +3,13 @@ import { useState, useMemo } from 'react'
 const DAY_NAMES = ['', 'Mon', '', 'Wed', '', 'Fri', '']
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
+function localDateStr(date) {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 function getLevel(count) {
   if (count === 0) return 0
   if (count === 1) return 1
@@ -25,13 +32,13 @@ export default function ContributionGraph({ logs }) {
 
     const dayCounts = {}
     for (let d = new Date(oneYearAgo); d <= today; d.setDate(d.getDate() + 1)) {
-      dayCounts[d.toISOString().split('T')[0]] = 0
+      dayCounts[localDateStr(d)] = 0
     }
 
     ;(logs || []).forEach(log => {
       if (!log.created_at) return
       try {
-        const key = new Date(log.created_at).toISOString().split('T')[0]
+        const key = localDateStr(new Date(log.created_at))
         if (dayCounts[key] !== undefined) dayCounts[key]++
       } catch (e) {}
     })
@@ -42,7 +49,7 @@ export default function ContributionGraph({ logs }) {
     for (let i = 0; i < startDay; i++) currentWeek.push(null)
 
     for (let d = new Date(oneYearAgo); d <= today; d.setDate(d.getDate() + 1)) {
-      const key = d.toISOString().split('T')[0]
+      const key = localDateStr(d)
       currentWeek.push({ date: key, count: dayCounts[key] || 0 })
       if (currentWeek.length === 7) {
         weeks.push(currentWeek)
@@ -58,7 +65,8 @@ export default function ContributionGraph({ logs }) {
     weeks.forEach((week, wi) => {
       week.forEach(day => {
         if (day && day.date) {
-          const d = new Date(day.date + 'T12:00:00')
+          const parts = day.date.split('-')
+          const d = new Date(+parts[0], +parts[1] - 1, +parts[2])
           if (d.getDate() === 1) {
             monthPositions.push({ idx: wi, name: MONTH_NAMES[d.getMonth()] })
           }
@@ -70,7 +78,7 @@ export default function ContributionGraph({ logs }) {
     ;(logs || []).forEach(log => {
       if (!log.created_at) return
       try {
-        const key = new Date(log.created_at).toISOString().split('T')[0]
+        const key = localDateStr(new Date(log.created_at))
         if (!logsByDate[key]) logsByDate[key] = []
         logsByDate[key].push(log)
       } catch (e) {}
@@ -240,6 +248,56 @@ export default function ContributionGraph({ logs }) {
           )}
         </div>
       )}
+
+      {/* Today's Activity */}
+      {(() => {
+        const todayStr = localDateStr(new Date())
+        const todayLogs = logsByDate[todayStr]
+        if (!todayLogs || todayLogs.length === 0) {
+          return (
+            <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--border-light)' }}>
+              <h4 style={{ fontSize: '0.85rem', fontWeight: 600, margin: '0 0 8px 0' }}>Today's Activity</h4>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>No activity recorded today.</p>
+            </div>
+          )
+        }
+        return (
+          <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--border-light)' }}>
+            <h4 style={{ fontSize: '0.85rem', fontWeight: 600, margin: '0 0 12px 0' }}>
+              Today's Activity ({todayLogs.length} action{todayLogs.length !== 1 ? 's' : ''})
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {todayLogs.map((log, i) => (
+                <div key={log.id || i} style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 8,
+                  fontSize: '0.8125rem', padding: '6px 0',
+                  borderBottom: i < todayLogs.length - 1 ? '1px solid var(--border-light)' : 'none'
+                }}>
+                  <span style={{
+                    padding: '2px 8px', borderRadius: 4, fontSize: '0.65rem',
+                    fontWeight: 600, textTransform: 'uppercase', whiteSpace: 'nowrap',
+                    flexShrink: 0, marginTop: 1,
+                    background: log.action === 'add' ? 'rgba(56, 161, 105, 0.15)' :
+                      log.action === 'delete' ? 'rgba(229, 62, 62, 0.15)' :
+                      log.action === 'edit' ? 'rgba(0, 82, 255, 0.1)' :
+                      log.action === 'archive' ? 'rgba(214, 158, 46, 0.15)' : 'rgba(100, 116, 139, 0.15)',
+                    color: log.action === 'add' ? 'var(--success)' :
+                      log.action === 'delete' ? 'var(--danger)' :
+                      log.action === 'edit' ? 'var(--accent-primary)' :
+                      log.action === 'archive' ? 'var(--warning)' : 'var(--text-muted)'
+                  }}>
+                    {log.action.replace('_', ' ')}
+                  </span>
+                  <span style={{ flex: 1, color: 'var(--text-primary)' }}>{log.description}</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                    {log.created_at ? new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

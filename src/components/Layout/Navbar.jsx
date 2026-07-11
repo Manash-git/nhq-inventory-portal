@@ -218,8 +218,9 @@ export default function Navbar() {
           <div className="navbar-actions">
             <div className="dropdown" ref={themeRef}>
               <button className="navbar-action-btn" onClick={() => setShowThemeMenu(!showThemeMenu)} title="Switch theme">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2C6.49 2 2 6.49 2 12s4.49 10 10 10c1.38 0 2.5-1.12 2.5-2.5 0-.61-.22-1.16-.58-1.59-.36-.43-.58-.97-.58-1.58 0-1.38 1.12-2.5 2.5-2.5H17c3.31 0 6-2.69 6-6 0-4.96-4.49-9-11-9z"/>
+                  <circle cx="6.5" cy="11.5" r="1"/><circle cx="9.5" cy="7.5" r="1"/><circle cx="14.5" cy="7.5" r="1"/><circle cx="17.5" cy="11.5" r="1"/>
                 </svg>
               </button>
               {showThemeMenu && (
@@ -231,7 +232,7 @@ export default function Navbar() {
                         <polyline points="20 6 9 17 4 12"/>
                       </svg>
                     )}
-                    <span style={{ marginLeft: currentTheme === 'nhqbd' ? 0 : 24 }}>NHQBD</span>
+                    <span style={{ marginLeft: currentTheme === 'nhqbd' ? 0 : 24 }}>Midnight Blue</span>
                   </button>
                   <button className={`dropdown-item ${currentTheme === 'cohesity' ? 'active' : ''}`}
                     onClick={() => { switchTheme('cohesity'); setShowThemeMenu(false) }}>
@@ -240,7 +241,7 @@ export default function Navbar() {
                         <polyline points="20 6 9 17 4 12"/>
                       </svg>
                     )}
-                    <span style={{ marginLeft: currentTheme === 'cohesity' ? 0 : 24 }}>Cohesity</span>
+                    <span style={{ marginLeft: currentTheme === 'cohesity' ? 0 : 24 }}>Dark Teal</span>
                   </button>
                 </div>
               )}
@@ -301,7 +302,7 @@ export default function Navbar() {
                     </>
                   )}
                   <div className="dropdown-divider" />
-                  <button className="dropdown-item dropdown-item-danger" onClick={logout}>
+                  <button className="dropdown-item dropdown-item-danger" onClick={() => logout()}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
                     </svg>
