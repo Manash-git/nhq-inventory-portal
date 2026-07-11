@@ -65,23 +65,26 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (username, password) => {
     const ua = parseUA()
-    let ip = null
-    try {
-      const res = await Promise.race([
-        fetch('https://api.ipify.org?format=json').then(r => r.json()),
-        fetch('https://api.ip.sb/geoip').then(r => r.json()),
-        fetch('https://ip-api.com/json').then(r => r.json()),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
-      ])
-      ip = res.ip || res.query || null
-    } catch {}
+
+    // Fire-and-forget IP detection — non-blocking so auth is not delayed
+    ;(async () => {
+      try {
+        await Promise.race([
+          fetch('https://api.ipify.org?format=json').then(r => r.json()),
+          fetch('https://api.ip.sb/geoip').then(r => r.json()),
+          fetch('https://ip-api.com/json').then(r => r.json()),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
+        ])
+      } catch {}
+    })()
+
     const { data, error: rpcError } = await supabase.rpc('login_user', {
       p_username: username,
       p_password: password,
       p_browser: ua.browser,
       p_os: ua.os,
       p_device: ua.device,
-      p_ip_address: ip
+      p_ip_address: null
     })
 
     if (rpcError) throw new Error('Login failed. Please try again.')
@@ -99,10 +102,12 @@ export function AuthProvider({ children }) {
     setSessionToken(token)
     setPermissions(perms || [])
 
-    localStorage.setItem('nhq-current-user', JSON.stringify(userData))
-    localStorage.setItem('nhq-session-token', token)
-    localStorage.setItem('nhq-session-expiry', new Date(expires_at).getTime().toString())
-    localStorage.setItem('nhq-user-permissions', JSON.stringify(perms || []))
+    try {
+      localStorage.setItem('nhq-current-user', JSON.stringify(userData))
+      localStorage.setItem('nhq-session-token', token)
+      localStorage.setItem('nhq-session-expiry', new Date(expires_at).getTime().toString())
+      localStorage.setItem('nhq-user-permissions', JSON.stringify(perms || []))
+    } catch {}
 
     return userData
   }, [])
