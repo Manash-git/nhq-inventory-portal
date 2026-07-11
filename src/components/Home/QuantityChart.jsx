@@ -9,11 +9,12 @@ const CATEGORY_COLORS = {
 
 export default function QuantityChart({ products }) {
   const data = products.reduce((acc, p) => {
-    const existing = acc.find(item => item.category === p.category)
+    const label = p.category === 'Networking' ? 'Network' : p.category
+    const existing = acc.find(item => item.category === label)
     if (existing) {
       existing.quantity += p.quantity
     } else {
-      acc.push({ category: p.category, quantity: p.quantity })
+      acc.push({ category: label, quantity: p.quantity })
     }
     return acc
   }, [])
