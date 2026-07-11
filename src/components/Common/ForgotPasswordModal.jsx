@@ -16,7 +16,7 @@ export default function ForgotPasswordModal({ isOpen, onClose, triggerRef }) {
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} width="420px">
+    <Modal isOpen={isOpen} onClose={handleClose} width="520px">
       <div style={{ textAlign: 'center', padding: '8px 0' }}>
         <div style={{
           width: 56,
@@ -36,14 +36,14 @@ export default function ForgotPasswordModal({ isOpen, onClose, triggerRef }) {
         <h3 style={{ fontSize: '1.15rem', fontWeight: 600, margin: '0 0 8px', color: 'var(--text-primary)' }}>
           Forgot Password
         </h3>
-        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
+        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0, whiteSpace: 'nowrap' }}>
           Please contact your administrator to reset your password.
         </p>
         <button
           ref={okRef}
           className="btn btn-primary"
           onClick={handleClose}
-          style={{ marginTop: 24, minWidth: 100 }}
+          style={{ marginTop: 24, minWidth: 100, justifyContent: 'center' }}
         >
           OK
         </button>
