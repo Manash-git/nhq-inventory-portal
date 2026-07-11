@@ -66,18 +66,6 @@ export function AuthProvider({ children }) {
   const login = useCallback(async (username, password) => {
     const ua = parseUA()
 
-    // Fire-and-forget IP detection — non-blocking so auth is not delayed
-    ;(async () => {
-      try {
-        await Promise.race([
-          fetch('https://api.ipify.org?format=json').then(r => r.json()),
-          fetch('https://api.ip.sb/geoip').then(r => r.json()),
-          fetch('https://ip-api.com/json').then(r => r.json()),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
-        ])
-      } catch {}
-    })()
-
     const { data, error: rpcError } = await supabase.rpc('login_user', {
       p_username: username,
       p_password: password,
