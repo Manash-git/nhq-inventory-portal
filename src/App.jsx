@@ -7,6 +7,7 @@ import { SessionProvider } from './contexts/SessionContext'
 import ProtectedRoute from './components/Common/ProtectedRoute'
 import Navbar from './components/Layout/Navbar'
 import Footer from './components/Layout/Footer'
+import ScrollToTop from './components/Layout/ScrollToTop'
 import Login from './components/Login/Login'
 import Home from './components/Home/Home'
 import History from './components/History/History'
@@ -45,6 +46,7 @@ function AppContent() {
         </Routes>
       </main>
       <Footer />
+      <ScrollToTop />
     </div>
   )
 }
