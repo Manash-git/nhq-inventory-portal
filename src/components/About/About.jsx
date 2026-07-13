@@ -64,8 +64,8 @@ export default function About() {
               <p>Download your inventory as a formatted Excel spreadsheet or a professional PDF report with clean tables, company branding, and summary totals. Perfect for sharing with stakeholders.</p>
             </div>
             <div className="about-feature-item">
-              <h4>Archive & Restore</h4>
-              <p>Archive discontinued products instead of deleting them. Your active inventory stays clean, and archived items can be restored with their full record, including history and details.</p>
+              <h4>Archive</h4>
+              <p>Archive discontinued products instead of deleting them. Your active inventory stays clean.</p>
             </div>
             <div className="about-feature-item">
               <h4>Visual Dashboard Charts</h4>
@@ -92,11 +92,11 @@ export default function About() {
             </div>
             <div className="faq-item">
               <h4>What's the difference between Admin and Read-Only roles?</h4>
-              <p>Admins can add, edit, delete, archive, restore, and export inventory. They can also view all activity logs and login history. Read-Only users can view the inventory list, access charts, and see their own activity logs, but cannot make any changes or export data.</p>
+              <p>Admins can add, edit, delete, archive,and export inventory. They can also view all activity logs and login history. Read-Only users can view the inventory list, access charts, and see their own activity logs, but cannot make any changes or export data.</p>
             </div>
             <div className="faq-item">
               <h4>Can I recover a deleted product?</h4>
-              <p>No, deletions are permanent and cannot be undone. Instead of deleting a product with quantity 1, use the Archive option. Archived products are hidden from the main inventory but can be viewed and restored from the History page at any time.</p>
+              <p>No, deletions are permanent and cannot be undone. Instead of deleting a product with quantity 1, use the Archive option. Archived products are hidden from the main inventory but can be viewed.</p>
             </div>
             <div className="faq-item">
               <h4>How do I export the inventory?</h4>
